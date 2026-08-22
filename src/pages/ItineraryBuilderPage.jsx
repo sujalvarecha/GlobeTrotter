@@ -378,34 +378,29 @@ export default function ItineraryBuilderPage() {
     currentTrip,
     fetchTrip,
     tripStops,
-    tripActivities,
     fetchTripStops,
-    fetchCities,
-    cities,
     addStop,
     removeStop,
     reorderStops,
+    cities,
+    fetchCities,
+    tripActivities,
     addActivity,
     removeActivity,
     getCityById,
     isLoading,
+    activities: allActivities,
+    fetchAllActivities
   } = useTripStore();
 
   const [expandedStops, setExpandedStops] = useState({});
-  const [allActivities, setAllActivities] = useState([]);
 
   useEffect(() => {
     fetchTrip(tripId);
     fetchTripStops(tripId);
     fetchCities();
-  }, [tripId, fetchTrip, fetchTripStops, fetchCities]);
-
-  // Load all activities (static import)
-  useEffect(() => {
-    import('../services/mockData').then(({ activities }) => {
-      setAllActivities(activities);
-    });
-  }, []);
+    fetchAllActivities();
+  }, [tripId, fetchTrip, fetchTripStops, fetchCities, fetchAllActivities]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

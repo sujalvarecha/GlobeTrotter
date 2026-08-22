@@ -11,7 +11,6 @@ import { motion } from 'framer-motion';
 import * as api from '../services/api';
 import useAuthStore from '../store/authStore';
 import useTripStore from '../store/tripStore';
-import { activities as allActivitiesData } from '../services/mockData';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';

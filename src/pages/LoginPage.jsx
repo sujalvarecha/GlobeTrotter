@@ -349,22 +349,6 @@ export default function LoginPage() {
                   </motion.form>
                 </AnimatePresence>
 
-                {/* Demo credentials hint */}
-                <div className="mt-6 pt-5 border-t border-dashed border-navy-700">
-                  <p className="text-[10px] tracking-[0.15em] uppercase font-mono text-slate-600 text-center mb-2">
-                    Demo Credentials
-                  </p>
-                  <div className="bg-navy-950/50 rounded px-4 py-3 space-y-1">
-                    <p className="text-[11px] font-mono text-slate-400">
-                      <span className="text-amber-400/60">EMAIL</span>{' '}
-                      arjun@globetrotter.dev
-                    </p>
-                    <p className="text-[11px] font-mono text-slate-400">
-                      <span className="text-amber-400/60">PASS</span>{' '}
-                      password123
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
 

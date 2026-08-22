@@ -12,7 +12,6 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import useTripStore from '../store/tripStore';
-import { activities as allActivitiesData } from '../services/mockData';
 import * as api from '../services/api';
 
 const localizer = momentLocalizer(moment);
@@ -49,6 +48,7 @@ export default function ItineraryViewPage() {
     fetchTripStops,
     updateTrip,
     getCityById,
+    getActivityById,
     isLoading,
   } = useTripStore();
 
@@ -94,7 +94,7 @@ export default function ItineraryViewPage() {
       acts.forEach((ta) => {
         const date = ta.date || 'unscheduled';
         if (!byDate[date]) byDate[date] = [];
-        const activity = allActivitiesData.find((a) => a.id === ta.activityId);
+        const activity = getActivityById(ta.activityId);
         byDate[date].push({ ...ta, activity });
       });
 
@@ -105,7 +105,7 @@ export default function ItineraryViewPage() {
 
       // City subtotal
       const cityTotal = acts.reduce((sum, ta) => {
-        const act = allActivitiesData.find((a) => a.id === ta.activityId);
+        const act = getActivityById(ta.activityId);
         return sum + (act?.estimatedCost || 0);
       }, 0);
 

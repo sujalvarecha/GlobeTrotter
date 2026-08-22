@@ -6,7 +6,6 @@
 
 import { create } from 'zustand';
 import * as api from '../services/api';
-import { cities, activities as allActivities } from '../services/mockData';
 
 const useTripStore = create((set, get) => ({
   // ─── State ──────────────────────────────
@@ -16,6 +15,7 @@ const useTripStore = create((set, get) => ({
   tripActivities: {}, // keyed by stopId
   budget: null,
   cities: [],
+  activities: [],
   isLoading: false,
   error: null,
 
@@ -92,7 +92,27 @@ const useTripStore = create((set, get) => ({
       const { data } = await api.getCities();
       set({ cities: data });
     } catch {
-      set({ cities });
+      // Backend not ready yet
+      set({ cities: [] });
+    }
+  },
+
+  fetchActivities: async (cityId) => {
+    try {
+      const { data } = await api.getActivities(cityId);
+      set({ activities: data });
+    } catch {
+      set({ activities: [] });
+    }
+  },
+
+  fetchAllActivities: async () => {
+    try {
+      // Assuming a generic endpoint to fetch all or we just wait for backend
+      const { data } = await api.getActivities(); 
+      set({ activities: data });
+    } catch {
+      set({ activities: [] });
     }
   },
 
@@ -215,8 +235,8 @@ const useTripStore = create((set, get) => ({
   },
 
   // ─── Helpers ────────────────────────────
-  getCityById: (cityId) => cities.find((c) => c.id === cityId),
-  getActivityById: (actId) => allActivities.find((a) => a.id === actId),
+  getCityById: (cityId) => get().cities.find((c) => c.id === cityId),
+  getActivityById: (actId) => get().activities.find((a) => a.id === actId),
 
   clearCurrentTrip: () =>
     set({ currentTrip: null, tripStops: [], tripActivities: {}, budget: null }),

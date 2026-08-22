@@ -9,6 +9,7 @@ public class UserDTO {
     private String email;
     private String profileImage;
     private String language;
+    private String role;
 
     public UserDTO() {
     }
@@ -20,6 +21,7 @@ public class UserDTO {
         dto.setEmail(user.getEmail());
         dto.setProfileImage(user.getProfileImage());
         dto.setLanguage(user.getLanguage());
+        dto.setRole(user.getRole());
         return dto;
     }
 
@@ -62,5 +64,13 @@ public class UserDTO {
 
     public void setLanguage(String language) {
         this.language = language;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

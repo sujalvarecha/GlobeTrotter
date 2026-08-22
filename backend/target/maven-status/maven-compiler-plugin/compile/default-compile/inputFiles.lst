@@ -14,6 +14,7 @@
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/security/JwtAuthenticationFilter.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/model/TripStop.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/controller/PublicTripController.java
+/Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/service/EmailService.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/security/SecurityConfig.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/dto/AddStopRequest.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/dto/ActivityCostItemDTO.java
@@ -68,6 +69,7 @@
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/dto/UpdateProfileRequest.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/model/TripActivity.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/service/UserService.java
+/Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/dto/ResetPasswordRequest.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/controller/ItineraryController.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/dto/UserDTO.java
 /Users/aryan/GlobeTrotter/GlobeTrotter/backend/src/main/java/com/globetrotter/service/ShareService.java

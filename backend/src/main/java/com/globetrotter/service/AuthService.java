@@ -23,16 +23,19 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final EmailService emailService;
 
     @Autowired
     public AuthService(AuthenticationManager authenticationManager,
                        UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtTokenProvider tokenProvider) {
+                       JwtTokenProvider tokenProvider,
+                       EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -92,11 +95,40 @@ public class AuthService {
         return UserDTO.fromEntity(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public String forgotPassword(String email) {
         String cleanEmail = email.toLowerCase().trim();
-        userRepository.findByEmail(cleanEmail)
-                .orElseThrow(() -> new RuntimeException("No user found with email address: " + cleanEmail));
-        return "Password reset link has been dispatched to " + cleanEmail + ". Please check your inbox.";
+        userRepository.findByEmail(cleanEmail).ifPresent(user -> {
+            String token = java.util.UUID.randomUUID().toString().replace("-", "");
+            user.setResetToken(token);
+            user.setResetTokenExpiry(java.time.LocalDateTime.now().plusHours(24));
+            userRepository.save(user);
+
+            emailService.sendPasswordResetEmail(cleanEmail, token);
+        });
+
+        return "If an account exists with that email address, a password reset link has been dispatched to your inbox.";
+    }
+
+    @Transactional
+    public String resetPassword(String token, String newPassword) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new RuntimeException("Reset token is required");
+        }
+        User user = userRepository.findAll().stream()
+                .filter(u -> token.equals(u.getResetToken()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Invalid or expired password reset token"));
+
+        if (user.getResetTokenExpiry() != null && user.getResetTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Password reset token has expired. Please request a new one.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
+
+        return "Password has been successfully updated! You can now log in with your new password.";
     }
 }

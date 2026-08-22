@@ -21,7 +21,7 @@ public class Trip {
     @Column(nullable = false)
     private String name;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "start_date")
@@ -30,7 +30,7 @@ public class Trip {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "cover_image")
+    @Column(name = "cover_image", columnDefinition = "TEXT")
     private String coverImage;
 
     @Column(name = "target_budget")

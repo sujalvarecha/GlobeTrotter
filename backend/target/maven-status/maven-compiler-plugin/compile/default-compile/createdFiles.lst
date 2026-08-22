@@ -2,6 +2,7 @@ com/globetrotter/dto/CityDTO.class
 com/globetrotter/dto/DashboardSummaryDTO.class
 com/globetrotter/repository/CityRepository.class
 com/globetrotter/service/AIService$PersistedActivityPlan.class
+com/globetrotter/service/EmailService.class
 com/globetrotter/repository/ActivityRepository.class
 com/globetrotter/dto/CreateTripRequest.class
 com/globetrotter/dto/WaypointDTO.class
@@ -48,6 +49,7 @@ com/globetrotter/security/JwtTokenProvider.class
 com/globetrotter/model/Activity.class
 com/globetrotter/controller/ItineraryController.class
 com/globetrotter/dto/TripBudgetDTO.class
+com/globetrotter/dto/ResetPasswordRequest.class
 com/globetrotter/service/DashboardService.class
 com/globetrotter/dto/DayActivityItemDTO.class
 com/globetrotter/dto/AITripRequest.class

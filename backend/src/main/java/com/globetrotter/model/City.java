@@ -25,7 +25,7 @@ public class City {
 
     private Integer popularity; // Rating scale 1 to 100
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     private Double latitude;

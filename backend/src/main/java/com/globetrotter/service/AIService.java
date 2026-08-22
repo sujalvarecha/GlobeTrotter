@@ -65,20 +65,32 @@ public class AIService {
 
         List<City> allCities = cityRepository.findAll();
 
-        // 1. Find matching candidate cities for destination
+        // 1. Find matching candidate cities for destination (bidirectional match)
         List<City> matchedCities = allCities.stream()
-                .filter(c -> c.getName().toLowerCase().contains(destQuery)
-                        || c.getCountry().toLowerCase().contains(destQuery)
-                        || c.getRegion().toLowerCase().contains(destQuery))
-                .sorted(Comparator.comparingInt((City c) -> c.getPopularity() != null ? c.getPopularity() : 0).reversed())
+                .filter(c -> {
+                    String cName = c.getName().toLowerCase();
+                    String cCountry = c.getCountry().toLowerCase();
+                    String cRegion = (c.getRegion() != null ? c.getRegion() : "").toLowerCase();
+                    return cName.contains(destQuery) || destQuery.contains(cName)
+                            || cCountry.contains(destQuery) || destQuery.contains(cCountry)
+                            || cRegion.contains(destQuery) || destQuery.contains(cRegion);
+                })
+                .sorted((a, b) -> {
+                    boolean aCityExact = destQuery.contains(a.getName().toLowerCase()) || a.getName().toLowerCase().contains(destQuery);
+                    boolean bCityExact = destQuery.contains(b.getName().toLowerCase()) || b.getName().toLowerCase().contains(destQuery);
+                    if (aCityExact && !bCityExact) return -1;
+                    if (!aCityExact && bCityExact) return 1;
+                    return Integer.compare(
+                            b.getPopularity() != null ? b.getPopularity() : 0,
+                            a.getPopularity() != null ? a.getPopularity() : 0
+                    );
+                })
                 .collect(Collectors.toList());
 
-        // Fallback to top popular cities if no direct text match
+        // 2. If no direct match in existing catalogue, dynamically synthesize destination on the fly!
         if (matchedCities.isEmpty()) {
-            matchedCities = allCities.stream()
-                    .sorted(Comparator.comparingInt((City c) -> c.getPopularity() != null ? c.getPopularity() : 0).reversed())
-                    .limit(3)
-                    .collect(Collectors.toList());
+            City dynamicCity = synthesizeDestinationOnTheFly(request.getDestination(), request.getInterests());
+            matchedCities = List.of(dynamicCity);
         }
 
         // Determine number of cities to include
@@ -308,6 +320,37 @@ public class AIService {
         }
     }
 
+    private City synthesizeDestinationOnTheFly(String rawDestination, List<String> userInterests) {
+        String[] parts = rawDestination.split(",");
+        String cityName = capitalizeWords(parts[0].trim());
+        String countryName = parts.length > 1 ? capitalizeWords(parts[1].trim()) : "International";
+        String region = countryName.equalsIgnoreCase("India") ? "Asia" : "Global Destination";
+
+        double lat = 20.0 + (Math.random() * 20.0 - 10.0);
+        double lng = 78.0 + (Math.random() * 20.0 - 10.0);
+        double costIndex = countryName.equalsIgnoreCase("India") ? 2.3 : 3.5;
+        String imageUrl = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=1200";
+
+        City newCity = new City(cityName, countryName, region, costIndex, 92, imageUrl, lat, lng);
+
+        List<String> interests = (userInterests != null && !userInterests.isEmpty())
+                ? userInterests
+                : List.of("Culture", "Sightseeing", "Food", "Adventure");
+
+        for (String interest : interests) {
+            String actName = cityName + " " + interest + " Experience";
+            String actDesc = "Immersive " + interest.toLowerCase() + " discovery exploring highlights of " + cityName + ".";
+            double cost = (countryName.equalsIgnoreCase("India") ? 8.0 : 25.0) + Math.round(Math.random() * 15.0);
+            newCity.addActivity(new Activity(actName, actDesc, interest, 120, cost, imageUrl));
+        }
+        newCity.addActivity(new Activity(cityName + " Old Town & Heritage Walk", "Scenic discovery of historic alleys, landmarks, and monuments.", "Culture", 120, 5.0, imageUrl));
+        newCity.addActivity(new Activity("Authentic " + cityName + " Culinary & Street Food Tasting", "Savoring regional signature flavors and local specialties.", "Food", 90, 12.0, imageUrl));
+
+        City saved = cityRepository.save(newCity);
+        System.out.println("✨ AI synthesized and seeded new global destination: " + cityName + ", " + countryName);
+        return saved;
+    }
+
     private double round(double val) {
         return Math.round(val * 100.0) / 100.0;
     }
@@ -315,5 +358,17 @@ public class AIService {
     private String capitalize(String str) {
         if (str == null || str.isEmpty()) return "";
         return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    private String capitalizeWords(String str) {
+        if (str == null || str.isEmpty()) return "";
+        String[] words = str.split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) {
+            if (!w.isEmpty()) {
+                sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1).toLowerCase()).append(" ");
+            }
+        }
+        return sb.toString().trim();
     }
 }

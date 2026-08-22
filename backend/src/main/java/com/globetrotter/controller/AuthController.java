@@ -49,4 +49,11 @@ public class AuthController {
         String msg = authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok(java.util.Map.of("message", msg));
     }
+
+    // POST /api/auth/reset-password
+    @PostMapping("/reset-password")
+    public ResponseEntity<java.util.Map<String, String>> resetPassword(@Valid @RequestBody com.globetrotter.dto.ResetPasswordRequest request) {
+        String msg = authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(java.util.Map.of("message", msg));
+    }
 }

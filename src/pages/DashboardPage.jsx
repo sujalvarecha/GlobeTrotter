@@ -5,7 +5,7 @@
  * quick budget bar, and a prominent "Plan New Trip" CTA.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
@@ -205,6 +205,14 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { trips, fetchTrips, isLoading } = useTripStore();
   const [budgetSummary, setBudgetSummary] = useState(null);
+  const videoRef = useRef(null);
+
+  // Slow down video playback speed (0.4 = 40% speed for smooth slow-mo motion)
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.4;
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -236,9 +244,33 @@ export default function DashboardPage() {
   const recent = trips.filter((t) => new Date(t.startDate) <= now);
 
   return (
-    <div className="space-y-10">
-      {/* ── Welcome Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+    <div className="relative space-y-10 min-h-screen">
+      {/* ── Fixed Looping Background Video ── */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onLoadedMetadata={(e) => {
+            e.target.playbackRate = 0.6;
+          }}
+          onPlay={(e) => {
+            e.target.playbackRate = 0.6;
+          }}
+          className="w-full h-full object-cover opacity-80 scale-105"
+        >
+          <source src="/videos/hero-background.mp4" type="video/mp4" />
+        </video>
+        {/* Balanced overlay gradient — video is clearly visible while text stays 100% readable */}
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/70 via-navy-950/50 to-navy-950/80" />
+      </div>
+
+      {/* Content wrapper */}
+      <div className="relative z-10 space-y-10">
+        {/* ── Welcome Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -281,7 +313,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-navy-900 border border-navy-700 rounded-lg p-5"
+          className="bg-navy-900/80 backdrop-blur-md border border-navy-700/80 rounded-lg p-5 shadow-lg"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500">
@@ -356,6 +388,7 @@ export default function DashboardPage() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

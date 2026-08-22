@@ -30,40 +30,40 @@ export default function AppLayout() {
       <div className="h-1 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600" />
 
       {/* ── Navigation bar ── */}
-      <header className="bg-navy-900 border-b border-navy-700">
+      <header className="sticky top-0 z-40 bg-navy-900/95 backdrop-blur-md border-b border-navy-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <NavLink to="/" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 rounded bg-amber-400 flex items-center justify-center text-navy-950 font-bold text-lg font-display">
+              <div className="w-9 h-9 rounded bg-amber-400 flex items-center justify-center text-navy-950 font-bold text-lg font-display shadow-md group-hover:scale-105 transition-transform">
                 G
               </div>
               <div>
-                <span className="font-display text-lg text-cream tracking-wide">
+                <span className="font-display text-xl text-cream font-bold tracking-wide group-hover:text-amber-400 transition-colors">
                   GlobeTrotter
                 </span>
-                <div className="text-[10px] tracking-[0.3em] uppercase text-amber-400/60 font-mono -mt-0.5">
+                <div className="text-[10px] tracking-[0.3em] uppercase text-amber-400 font-mono -mt-0.5">
                   Travel Planner
                 </div>
               </div>
             </NavLink>
 
             {/* Nav links */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-2">
               {navItems.map(({ to, label, icon }) => (
                 <NavLink
                   key={to}
                   to={to}
                   end={to === '/'}
                   className={({ isActive }) =>
-                    `px-4 py-2 text-xs tracking-[0.15em] uppercase font-mono transition-all duration-200 border-b-2 ${
+                    `px-4 py-2 text-xs tracking-[0.15em] uppercase font-mono font-semibold transition-all duration-200 rounded border ${
                       isActive
-                        ? 'text-amber-400 border-amber-400 bg-amber-400/5'
-                        : 'text-slate-400 border-transparent hover:text-cream hover:border-navy-500'
+                        ? 'text-amber-400 border-amber-400/50 bg-amber-400/10 shadow-sm'
+                        : 'text-slate-200 border-transparent hover:text-cream hover:bg-navy-800/80 hover:border-navy-600'
                     }`
                   }
                 >
-                  <span className="mr-1.5">{icon}</span>
+                  <span className="mr-1.5 text-amber-400/80">{icon}</span>
                   {label}
                 </NavLink>
               ))}
@@ -72,20 +72,20 @@ export default function AppLayout() {
             {/* User section */}
             <div className="flex items-center gap-4">
               {user && (
-                <div className="hidden sm:flex items-center gap-3">
+                <div className="hidden sm:flex items-center gap-3 bg-navy-950/60 px-3 py-1.5 rounded-full border border-navy-700">
                   <img
                     src={user.profileImage}
                     alt={user.name}
-                    className="w-8 h-8 rounded-full border border-navy-600"
+                    className="w-7 h-7 rounded-full border border-amber-400/50"
                   />
-                  <span className="text-sm text-slate-300 font-mono">
+                  <span className="text-xs text-cream font-mono font-semibold">
                     {user.name}
                   </span>
                 </div>
               )}
               <button
                 onClick={handleLogout}
-                className="text-xs tracking-[0.15em] uppercase font-mono text-slate-500 hover:text-danger transition-colors px-3 py-1.5 border border-navy-700 hover:border-danger/30 rounded"
+                className="text-xs tracking-[0.15em] uppercase font-mono font-semibold text-slate-300 hover:text-danger transition-colors px-3 py-1.5 bg-navy-800 hover:bg-navy-700 border border-navy-600 hover:border-danger/40 rounded"
               >
                 Logout
               </button>

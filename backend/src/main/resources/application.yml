@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -31,4 +31,3 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
-

@@ -6,8 +6,8 @@ spring:
     name: globetrotter-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/globetrotter_db}
-    username: ${SPRING_DATASOURCE_USERNAME:shashankgadhvi}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/globetrotter_db}
+    username: ${SPRING_DATASOURCE_USERNAME:aryan}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 

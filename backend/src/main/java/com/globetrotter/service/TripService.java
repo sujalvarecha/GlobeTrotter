@@ -45,6 +45,7 @@ public class TripService {
                 request.getEndDate(),
                 request.getCoverImage()
         );
+        trip.setTargetBudget(request.getTargetBudget());
         trip.setUser(currentUser);
 
         Trip saved = tripRepository.save(trip);
@@ -88,6 +89,9 @@ public class TripService {
         trip.setEndDate(request.getEndDate());
         if (request.getCoverImage() != null) {
             trip.setCoverImage(request.getCoverImage());
+        }
+        if (request.getTargetBudget() != null) {
+            trip.setTargetBudget(request.getTargetBudget());
         }
 
         return TripResponse.fromEntity(tripRepository.save(trip));

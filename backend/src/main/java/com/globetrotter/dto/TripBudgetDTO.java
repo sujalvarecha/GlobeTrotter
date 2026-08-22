@@ -10,6 +10,10 @@ public class TripBudgetDTO {
     private String currency;
     private String budgetTier; // "budget", "standard", "luxury"
     private int totalDays;
+    private Double targetBudget;
+    private Boolean isOverBudget;
+    private Double budgetDifference;
+    private double averageCostPerDay;
     
     // Overall totals
     private double totalEstimatedCost;
@@ -42,6 +46,18 @@ public class TripBudgetDTO {
 
     public int getTotalDays() { return totalDays; }
     public void setTotalDays(int totalDays) { this.totalDays = totalDays; }
+
+    public Double getTargetBudget() { return targetBudget; }
+    public void setTargetBudget(Double targetBudget) { this.targetBudget = targetBudget; }
+
+    public Boolean getIsOverBudget() { return isOverBudget; }
+    public void setIsOverBudget(Boolean isOverBudget) { this.isOverBudget = isOverBudget; }
+
+    public Double getBudgetDifference() { return budgetDifference; }
+    public void setBudgetDifference(Double budgetDifference) { this.budgetDifference = budgetDifference; }
+
+    public double getAverageCostPerDay() { return averageCostPerDay; }
+    public void setAverageCostPerDay(double averageCostPerDay) { this.averageCostPerDay = averageCostPerDay; }
 
     public double getTotalEstimatedCost() { return totalEstimatedCost; }
     public void setTotalEstimatedCost(double totalEstimatedCost) { this.totalEstimatedCost = totalEstimatedCost; }

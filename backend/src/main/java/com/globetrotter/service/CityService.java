@@ -36,12 +36,33 @@ public class CityService {
     }
 
     @Transactional(readOnly = true)
-    public List<CityDTO> searchCities(String query) {
+    public List<CityDTO> searchCities(String query, String region, Double maxCostIndex, Integer minPopularity) {
+        List<City> baseList;
         if (query == null || query.isBlank()) {
-            return getAllCities();
+            baseList = cityRepository.findByOrderByPopularityDesc();
+        } else {
+            baseList = cityRepository.searchCities(query.trim());
         }
-        return cityRepository.searchCities(query.trim())
-                .stream()
+
+        return baseList.stream()
+                .filter(c -> {
+                    if (region != null && !region.isBlank()) {
+                        if (c.getRegion() == null || !c.getRegion().equalsIgnoreCase(region.trim())) {
+                            return false;
+                        }
+                    }
+                    if (maxCostIndex != null) {
+                        if (c.getCostIndex() != null && c.getCostIndex() > maxCostIndex) {
+                            return false;
+                        }
+                    }
+                    if (minPopularity != null) {
+                        if (c.getPopularity() != null && c.getPopularity() < minPopularity) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
                 .map(CityDTO::fromEntity)
                 .collect(Collectors.toList());
     }

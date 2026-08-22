@@ -19,6 +19,8 @@ public class CreateTripRequest {
 
     private String coverImage;
 
+    private Double targetBudget;
+
     public CreateTripRequest() {
     }
 
@@ -28,6 +30,15 @@ public class CreateTripRequest {
         this.startDate = startDate;
         this.endDate = endDate;
         this.coverImage = coverImage;
+    }
+
+    public CreateTripRequest(String name, String description, LocalDate startDate, LocalDate endDate, String coverImage, Double targetBudget) {
+        this.name = name;
+        this.description = description;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.coverImage = coverImage;
+        this.targetBudget = targetBudget;
     }
 
     public String getName() {
@@ -68,5 +79,13 @@ public class CreateTripRequest {
 
     public void setCoverImage(String coverImage) {
         this.coverImage = coverImage;
+    }
+
+    public Double getTargetBudget() {
+        return targetBudget;
+    }
+
+    public void setTargetBudget(Double targetBudget) {
+        this.targetBudget = targetBudget;
     }
 }

@@ -30,4 +30,10 @@ public class PublicTripController {
     public ResponseEntity<TripResponse> forkTrip(@PathVariable String shareToken) {
         return new ResponseEntity<>(shareService.forkTrip(shareToken), HttpStatus.CREATED);
     }
+
+    // POST /api/public/trips/{shareToken}/copy — Alias for forking/copying a public trip
+    @PostMapping("/{shareToken}/copy")
+    public ResponseEntity<TripResponse> copyTrip(@PathVariable String shareToken) {
+        return new ResponseEntity<>(shareService.forkTrip(shareToken), HttpStatus.CREATED);
+    }
 }

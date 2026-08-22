@@ -33,6 +33,9 @@ public class Trip {
     @Column(name = "cover_image")
     private String coverImage;
 
+    @Column(name = "target_budget")
+    private Double targetBudget;
+
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = false;
 
@@ -114,6 +117,14 @@ public class Trip {
 
     public void setCoverImage(String coverImage) {
         this.coverImage = coverImage;
+    }
+
+    public Double getTargetBudget() {
+        return targetBudget;
+    }
+
+    public void setTargetBudget(Double targetBudget) {
+        this.targetBudget = targetBudget;
     }
 
     public Boolean getIsPublic() {

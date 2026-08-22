@@ -42,4 +42,11 @@ public class AuthController {
         UserDTO user = authService.getCurrentUser();
         return ResponseEntity.ok(user);
     }
+
+    // POST /api/auth/forgot-password
+    @PostMapping("/forgot-password")
+    public ResponseEntity<java.util.Map<String, String>> forgotPassword(@Valid @RequestBody com.globetrotter.dto.ForgotPasswordRequest request) {
+        String msg = authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(java.util.Map.of("message", msg));
+    }
 }

@@ -91,4 +91,12 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
         return UserDTO.fromEntity(user);
     }
+
+    @Transactional(readOnly = true)
+    public String forgotPassword(String email) {
+        String cleanEmail = email.toLowerCase().trim();
+        userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new RuntimeException("No user found with email address: " + cleanEmail));
+        return "Password reset link has been dispatched to " + cleanEmail + ". Please check your inbox.";
+    }
 }

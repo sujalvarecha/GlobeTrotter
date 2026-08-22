@@ -1,22 +1,25 @@
 package com.globetrotter.dto;
 
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public class AddStopRequest {
 
-    @NotNull(message = "City ID is required")
     private Long cityId;
 
-    @NotNull(message = "Start date is required")
     private LocalDate startDate;
 
-    @NotNull(message = "End date is required")
     private LocalDate endDate;
 
     private Integer stopOrder; // optional; auto-assigned if null
 
     public AddStopRequest() {
+    }
+
+    public AddStopRequest(Long cityId, LocalDate startDate, LocalDate endDate, Integer stopOrder) {
+        this.cityId = cityId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.stopOrder = stopOrder;
     }
 
     public Long getCityId() {

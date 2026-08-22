@@ -19,6 +19,7 @@ public class ActivityController {
         this.activityService = activityService;
     }
 
+    // GET /api/activities/city/{cityId}?category=Food
     @GetMapping("/city/{cityId}")
     public ResponseEntity<List<ActivityDTO>> getActivitiesByCity(
             @PathVariable Long cityId,
@@ -26,8 +27,13 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.getActivitiesByCity(cityId, category));
     }
 
+    // GET /api/activities/search?query=...&category=...&maxCost=...&maxDuration=...
     @GetMapping("/search")
-    public ResponseEntity<List<ActivityDTO>> searchActivities(@RequestParam(required = false) String query) {
-        return ResponseEntity.ok(activityService.searchActivities(query));
+    public ResponseEntity<List<ActivityDTO>> searchActivities(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double maxCost,
+            @RequestParam(required = false) Integer maxDuration) {
+        return ResponseEntity.ok(activityService.searchActivities(query, category, maxCost, maxDuration));
     }
 }

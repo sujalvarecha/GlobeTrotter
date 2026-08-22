@@ -59,6 +59,9 @@ public class StopService {
     public TripStopDTO addStop(Long tripId, AddStopRequest request) {
         Trip trip = getOwnedTrip(tripId);
 
+        if (request.getCityId() == null) {
+            throw new RuntimeException("City ID is required to add a stop");
+        }
         City city = cityRepository.findById(request.getCityId())
                 .orElseThrow(() -> new RuntimeException("City not found with id: " + request.getCityId()));
 
@@ -83,8 +86,12 @@ public class StopService {
                     .orElseThrow(() -> new RuntimeException("City not found with id: " + request.getCityId()));
             stop.setCity(city);
         }
-        stop.setStartDate(request.getStartDate());
-        stop.setEndDate(request.getEndDate());
+        if (request.getStartDate() != null) {
+            stop.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            stop.setEndDate(request.getEndDate());
+        }
         if (request.getStopOrder() != null) {
             stop.setStopOrder(request.getStopOrder());
         }

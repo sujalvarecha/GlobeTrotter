@@ -204,30 +204,41 @@ erDiagram
 
 ## 📡 Live API Reference
 
-### 🔐 Authentication (`/api/auth`)
+### 🔐 Authentication & Profile (`/api/auth`, `/api/users`)
 | Method | Endpoint | Description | Auth |
 |:---|:---|:---|:---|
 | `POST` | `/api/auth/signup` | Register new user account | Public |
 | `POST` | `/api/auth/login` | Login and receive Bearer JWT token | Public |
 | `GET` | `/api/auth/me` | Fetch authenticated user profile | Bearer JWT |
+| `POST` | `/api/auth/forgot-password` | Request password reset email | Public |
+| `GET` | `/api/users/me` | Get personal profile & travel statistics | Bearer JWT |
+| `PUT` | `/api/users/me` | Update name, avatar, or language preference | Bearer JWT |
+| `DELETE` | `/api/users/me` | Delete account and all associated travel plans | Bearer JWT |
+
+### 📊 Dashboard (`/api/dashboard`)
+| Method | Endpoint | Description | Auth |
+|:---|:---|:---|:---|
+| `GET` | `/api/dashboard/summary` | Consolidated dashboard: upcoming trips, recent trips, top destinations & spend stats | Bearer JWT |
 
 ### 🏙️ Exploration (`/api/cities`, `/api/activities`)
 | Method | Endpoint | Description | Auth |
 |:---|:---|:---|:---|
 | `GET` | `/api/cities` | List all available global cities | Public |
-| `GET` | `/api/cities/search?keyword=...` | Search destinations by keyword | Public |
+| `GET` | `/api/cities/search` | Search destinations with filters (`query`, `region`, `maxCostIndex`, `minPopularity`) | Public |
 | `GET` | `/api/cities/{id}` | Get city details with activities | Public |
 | `GET` | `/api/activities/city/{cityId}` | Filter activities by city & category | Public |
-| `GET` | `/api/activities/search?query=...` | Search activities across all cities | Public |
+| `GET` | `/api/activities/search` | Search activities with filters (`query`, `category`, `maxCost`, `maxDuration`) | Public |
 
 ### 🗓️ Itineraries & Stops (`/api/trips`)
 | Method | Endpoint | Description | Auth |
 |:---|:---|:---|:---|
-| `POST` | `/api/trips` | Create a new trip | Bearer JWT |
+| `POST` | `/api/trips` | Create a new trip (with optional `targetBudget`) | Bearer JWT |
 | `GET` | `/api/trips` | List all trips for current user | Bearer JWT |
 | `GET` | `/api/trips/{id}` | Get trip with nested stops & activities | Bearer JWT |
-| `PUT` | `/api/trips/{id}` | Update trip title, description, or dates | Bearer JWT |
+| `PUT` | `/api/trips/{id}` | Update trip title, description, dates, or target budget | Bearer JWT |
 | `DELETE` | `/api/trips/{id}` | Delete trip | Bearer JWT |
+| `GET` | `/api/trips/{id}/itinerary` | Structured day-by-day chronological breakdown with schedules & costs | Bearer JWT |
+| `GET` | `/api/trips/{id}/timeline` | Chronological event stream for calendar and timeline visualization | Bearer JWT |
 | `POST` | `/api/trips/{id}/stops` | Add a city stop to trip | Bearer JWT |
 | `PUT` | `/api/trips/{id}/stops/{stopId}` | Update stop dates | Bearer JWT |
 | `DELETE` | `/api/trips/{id}/stops/{stopId}` | Remove stop from trip | Bearer JWT |
@@ -238,7 +249,7 @@ erDiagram
 ### 💰 Budget & Financials (`/api/trips/{id}/budget`)
 | Method | Endpoint | Description | Auth |
 |:---|:---|:---|:---|
-| `GET` | `/api/trips/{id}/budget` | Real-time budget calculation (`?tier=standard&currency=USD`) | Bearer JWT |
+| `GET` | `/api/trips/{id}/budget` | Real-time budget calculation with target variance (`?tier=standard&currency=USD`) | Bearer JWT |
 | `GET` | `/api/trips/{id}/budget/currencies` | List supported currencies and exchange rates | Bearer JWT |
 
 ### 🗺️ Route & Geo-Visualization (`/api/trips/{id}/route`)
@@ -246,11 +257,12 @@ erDiagram
 |:---|:---|:---|:---|
 | `GET` | `/api/trips/{id}/route` | GeoJSON waypoints, transit modes, and distance | Bearer JWT |
 
-### 🤖 Smart AI Recommendations (`/api/trips/{id}/recommendations`)
+### 🤖 AI Travel Planner & Recommendations (`/api/ai`, `/api/trips/{id}/recommendations`)
 | Method | Endpoint | Description | Auth |
 |:---|:---|:---|:---|
+| `POST` | `/api/ai/generate-itinerary` | Generate AI multi-day itinerary matching interests & auto-save to database | Public / Bearer JWT |
 | `GET` | `/api/trips/{id}/recommendations/cities` | Contextual next-city suggestions | Bearer JWT |
-| `GET` | `/api/trips/{id}/recommendations/activities` | Personalized activity suggestions | Bearer JWT |
+| `GET` | `/api/trips/{id}/recommendations/activities` | Personalized unadded activity suggestions | Bearer JWT |
 
 ### 🔗 Public Sharing & Forking (`/api/trips/{id}/share`, `/api/public/trips`)
 | Method | Endpoint | Description | Auth |
@@ -259,6 +271,12 @@ erDiagram
 | `DELETE` | `/api/trips/{id}/share` | Revoke public sharing | Bearer JWT |
 | `GET` | `/api/public/trips/{shareToken}` | Public view of itinerary without auth | Public |
 | `POST` | `/api/public/trips/{shareToken}/fork` | Clone someone's public trip into user account | Bearer JWT |
+| `POST` | `/api/public/trips/{shareToken}/copy` | Alias for forking public trip | Bearer JWT |
+
+### 📈 Admin Analytics (`/api/admin`)
+| Method | Endpoint | Description | Auth |
+|:---|:---|:---|:---|
+| `GET` | `/api/admin/stats` | Aggregate platform statistics (total users, trips, stops, top destinations) | Bearer JWT |
 
 ### 📄 Export (`/api/trips/{id}/export`)
 | Method | Endpoint | Description | Auth |

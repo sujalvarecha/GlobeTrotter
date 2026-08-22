@@ -152,14 +152,32 @@ public class BudgetService {
         }
 
         double grandTotalUsd = totalAccommodation + totalFood + totalTransport + totalActivities;
+        double grandTotalConverted = round(grandTotalUsd * exchangeRate);
+
+        totalDays = Math.max(1, totalDays);
+        double avgDailyConverted = round(grandTotalConverted / totalDays);
 
         response.setTotalDays(totalDays);
         response.setTotalAccommodationCost(round(totalAccommodation * exchangeRate));
         response.setTotalFoodAndDiningCost(round(totalFood * exchangeRate));
         response.setTotalLocalTransportCost(round(totalTransport * exchangeRate));
         response.setTotalActivitiesCost(round(totalActivities * exchangeRate));
-        response.setTotalEstimatedCost(round(grandTotalUsd * exchangeRate));
+        response.setTotalEstimatedCost(grandTotalConverted);
+        response.setAverageCostPerDay(avgDailyConverted);
         response.setStopBudgets(stopBudgets);
+
+        // Target budget analysis
+        if (trip.getTargetBudget() != null) {
+            double targetBudgetConverted = round(trip.getTargetBudget() * exchangeRate);
+            response.setTargetBudget(targetBudgetConverted);
+            boolean overBudget = grandTotalConverted > targetBudgetConverted;
+            response.setIsOverBudget(overBudget);
+            response.setBudgetDifference(round(targetBudgetConverted - grandTotalConverted));
+        } else {
+            response.setTargetBudget(null);
+            response.setIsOverBudget(false);
+            response.setBudgetDifference(null);
+        }
 
         // Percentage breakdown
         Map<String, Double> breakdown = new HashMap<>();

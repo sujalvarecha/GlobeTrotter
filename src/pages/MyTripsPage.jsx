@@ -8,11 +8,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import useAuthStore from '../store/authStore';
 import useTripStore from '../store/tripStore';
 import * as api from '../services/api';
 
 const formatDate = (dateStr) => {
+  if (!dateStr) return '';
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 };
@@ -31,7 +31,7 @@ function DeleteModal({ trip, onConfirm, onCancel }) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-navy-900 border border-navy-600 rounded-lg p-6 max-w-sm w-full"
+        className="bg-navy-900 border border-navy-600 rounded-lg p-6 max-w-sm w-full shadow-2xl"
       >
         <div className="text-center mb-6">
           <div className="text-3xl mb-3">⚠️</div>
@@ -51,7 +51,7 @@ function DeleteModal({ trip, onConfirm, onCancel }) {
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2.5 text-xs tracking-[0.15em] uppercase font-mono text-cream bg-danger hover:bg-danger-dark rounded transition-colors"
+            className="flex-1 py-2.5 text-xs tracking-[0.15em] uppercase font-mono text-cream bg-danger hover:bg-danger/80 rounded transition-colors"
           >
             Delete Trip
           </button>
@@ -64,77 +64,83 @@ function DeleteModal({ trip, onConfirm, onCancel }) {
 function TripCardGrid({ trip, onDelete, index }) {
   const navigate = useNavigate();
   const getCityById = useTripStore((s) => s.getCityById);
-  const [stops, setStops] = useState([]);
+  const [stops, setStops] = useState(trip.stops || []);
 
   useEffect(() => {
-    api.getTripStops(trip.id).then(({ data }) => setStops(data));
-  }, [trip.id]);
+    if (!trip.stops || trip.stops.length === 0) {
+      api.getTripStops(trip.id).then(({ data }) => setStops(data)).catch(() => {});
+    }
+  }, [trip.id, trip.stops]);
 
-  const cityNames = stops.map((s) => getCityById(s.cityId)?.name).filter(Boolean);
+  const cityNames = stops.map((s) => s.city?.name || getCityById(s.cityId)?.name).filter(Boolean);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
-      className="ticket-card rounded-lg overflow-hidden group"
+      className="ticket-card rounded-lg overflow-hidden group shadow-lg flex flex-col justify-between"
     >
-      {/* Cover */}
-      <div className="h-36 relative overflow-hidden">
-        {trip.coverImage ? (
-          <img src={trip.coverImage} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : (
-          <div className="w-full h-full bg-navy-700 flex items-center justify-center">
-            <span className="text-4xl">🗺️</span>
+      <div>
+        {/* Cover */}
+        <div className="h-36 relative overflow-hidden">
+          {trip.coverImage ? (
+            <img src={trip.coverImage} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          ) : (
+            <div className="w-full h-full bg-navy-700 flex items-center justify-center">
+              <span className="text-4xl">🗺️</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-navy-900/90 to-transparent" />
+          <div className="absolute bottom-3 left-4 right-4">
+            <h3 className="font-display text-lg text-cream truncate">{trip.name}</h3>
           </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-900/90 to-transparent" />
-        <div className="absolute bottom-3 left-4 right-4">
-          <h3 className="font-display text-lg text-cream truncate">{trip.name}</h3>
-        </div>
-        {trip.isPublic && (
-          <span className="absolute top-3 right-3 text-[8px] tracking-[0.2em] uppercase font-mono font-bold bg-success/80 text-navy-950 px-2 py-0.5 rounded">
-            Public
-          </span>
-        )}
-      </div>
-
-      {/* Perforated divider */}
-      <div className="border-t border-dashed border-navy-600 relative">
-        <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-navy-950" />
-        <div className="absolute -right-3 -top-3 w-6 h-6 rounded-full bg-navy-950" />
-      </div>
-
-      {/* Details */}
-      <div className="p-4 space-y-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-600 block">Dates</span>
-            <span className="text-[11px] font-mono text-amber-400">
-              {formatDate(trip.startDate)} — {formatDate(trip.endDate)}
+          {trip.isPublic && (
+            <span className="absolute top-3 right-3 text-[8px] tracking-[0.2em] uppercase font-mono font-bold bg-success/80 text-navy-950 px-2 py-0.5 rounded">
+              Public
             </span>
-          </div>
-          <div className="text-right">
-            <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-600 block">Stops</span>
-            <span className="text-sm font-mono font-bold text-cream">{stops.length}</span>
-          </div>
+          )}
         </div>
 
-        {cityNames.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {cityNames.map((name) => (
-              <span key={name} className="text-[9px] tracking-wider uppercase font-mono text-slate-400 bg-navy-700/50 px-1.5 py-0.5 rounded">
-                {name}
+        {/* Perforated divider */}
+        <div className="border-t border-dashed border-navy-600 relative">
+          <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-navy-950" />
+          <div className="absolute -right-3 -top-3 w-6 h-6 rounded-full bg-navy-950" />
+        </div>
+
+        {/* Details */}
+        <div className="p-4 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-600 block">Dates</span>
+              <span className="text-[11px] font-mono text-amber-400">
+                {formatDate(trip.startDate)} — {formatDate(trip.endDate)}
               </span>
-            ))}
+            </div>
+            <div className="text-right">
+              <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-600 block">Stops</span>
+              <span className="text-sm font-mono font-bold text-cream">{stops.length}</span>
+            </div>
           </div>
-        )}
 
-        {trip.description && (
-          <p className="text-xs text-slate-500 line-clamp-2">{trip.description}</p>
-        )}
+          {cityNames.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {cityNames.map((name) => (
+                <span key={name} className="text-[9px] tracking-wider uppercase font-mono text-slate-400 bg-navy-700/50 px-1.5 py-0.5 rounded">
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
 
-        {/* Actions */}
+          {trip.description && (
+            <p className="text-xs text-slate-500 line-clamp-2">{trip.description}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="p-4 pt-0">
         <div className="flex gap-2 pt-2 border-t border-navy-700">
           <button
             onClick={() => navigate(`/trips/${trip.id}/itinerary`)}
@@ -163,20 +169,22 @@ function TripCardGrid({ trip, onDelete, index }) {
 function TripCardList({ trip, onDelete, index }) {
   const navigate = useNavigate();
   const getCityById = useTripStore((s) => s.getCityById);
-  const [stops, setStops] = useState([]);
+  const [stops, setStops] = useState(trip.stops || []);
 
   useEffect(() => {
-    api.getTripStops(trip.id).then(({ data }) => setStops(data));
-  }, [trip.id]);
+    if (!trip.stops || trip.stops.length === 0) {
+      api.getTripStops(trip.id).then(({ data }) => setStops(data)).catch(() => {});
+    }
+  }, [trip.id, trip.stops]);
 
-  const cityNames = stops.map((s) => getCityById(s.cityId)?.name).filter(Boolean);
+  const cityNames = stops.map((s) => s.city?.name || getCityById(s.cityId)?.name).filter(Boolean);
 
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.06 }}
-      className="ticket-card rounded-lg flex overflow-hidden group"
+      className="ticket-card rounded-lg flex overflow-hidden group shadow-lg"
     >
       {/* Cover thumbnail */}
       <div className="w-32 sm:w-48 flex-shrink-0 relative overflow-hidden">
@@ -236,14 +244,13 @@ function TripCardList({ trip, onDelete, index }) {
 }
 
 export default function MyTripsPage() {
-  const { user } = useAuthStore();
   const { trips, fetchTrips, deleteTrip, isLoading } = useTripStore();
   const [viewMode, setViewMode] = useState('grid');
   const [deletingTrip, setDeletingTrip] = useState(null);
 
   useEffect(() => {
-    if (user?.id) fetchTrips(user.id);
-  }, [user?.id, fetchTrips]);
+    fetchTrips();
+  }, [fetchTrips]);
 
   const handleDelete = async () => {
     if (deletingTrip) {
@@ -268,7 +275,7 @@ export default function MyTripsPage() {
             <button
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1.5 text-[10px] tracking-wider uppercase font-mono transition-colors ${
-                viewMode === 'grid' ? 'bg-amber-400/10 text-amber-400' : 'text-slate-500 hover:text-cream'
+                viewMode === 'grid' ? 'bg-amber-400/10 text-amber-400 font-bold' : 'text-slate-500 hover:text-cream'
               }`}
             >
               ▦ Grid
@@ -276,7 +283,7 @@ export default function MyTripsPage() {
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-1.5 text-[10px] tracking-wider uppercase font-mono transition-colors ${
-                viewMode === 'list' ? 'bg-amber-400/10 text-amber-400' : 'text-slate-500 hover:text-cream'
+                viewMode === 'list' ? 'bg-amber-400/10 text-amber-400 font-bold' : 'text-slate-500 hover:text-cream'
               }`}
             >
               ☰ List
@@ -284,7 +291,7 @@ export default function MyTripsPage() {
           </div>
           <Link
             to="/trips/new"
-            className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.15em] uppercase px-4 py-2 rounded transition-colors"
+            className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.15em] uppercase px-4 py-2 rounded transition-colors shadow-md"
           >
             <span>+</span> New Trip
           </Link>
@@ -314,10 +321,10 @@ export default function MyTripsPage() {
             🧳
           </motion.div>
           <h3 className="font-display text-2xl text-cream mb-2">No trips yet</h3>
-          <p className="text-sm text-slate-500 mb-6">Time to pack your bags!</p>
+          <p className="text-sm text-slate-500 mb-6">Time to pack your bags and explore the world!</p>
           <Link
             to="/trips/new"
-            className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase px-6 py-3 rounded transition-colors"
+            className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase px-6 py-3 rounded transition-colors shadow-md"
           >
             <span>+</span> Plan First Trip
           </Link>

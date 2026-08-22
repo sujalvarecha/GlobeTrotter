@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/share/:shareToken" element={<SharedTripPage />} />
 
-        {/* Protected routes */}
+        {/* Protected traveler routes */}
         <Route
           element={
             <ProtectedRoute>
@@ -35,7 +35,14 @@ export default function App() {
           <Route path="/trips/:tripId/itinerary" element={<ItineraryViewPage />} />
           <Route path="/trips/:tripId/budget" element={<BudgetPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Fallback */}

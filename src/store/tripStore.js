@@ -1,7 +1,7 @@
 /**
  * Trip Store — Zustand
  * Manages trips, stops, activities, and budget state.
- * All mutations go through api.js for future backend compatibility.
+ * Fully integrated with GlobeTrotter Spring Boot backend.
  */
 
 import { create } from 'zustand';
@@ -20,13 +20,15 @@ const useTripStore = create((set, get) => ({
   error: null,
 
   // ─── Trips CRUD ─────────────────────────
-  fetchTrips: async (userId) => {
+  fetchTrips: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await api.getTrips(userId);
+      const { data } = await api.getTrips();
       set({ trips: data, isLoading: false });
+      return data;
     } catch (err) {
       set({ isLoading: false, error: 'Failed to load trips' });
+      return [];
     }
   },
 
@@ -45,25 +47,42 @@ const useTripStore = create((set, get) => ({
   createTrip: async (tripData) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await api.createTrip(tripData);
+      const payload = {
+        name: tripData.name,
+        description: tripData.description || '',
+        startDate: tripData.startDate,
+        endDate: tripData.endDate,
+        coverImage: tripData.coverImage || '',
+        targetBudget: tripData.targetBudget !== undefined ? tripData.targetBudget : (tripData.budget ? Number(tripData.budget) : 0),
+      };
+      const { data } = await api.createTrip(payload);
       set((state) => ({
-        trips: [...state.trips, data],
+        trips: [data, ...state.trips],
         currentTrip: data,
         isLoading: false,
       }));
       return data;
     } catch (err) {
-      set({ isLoading: false, error: 'Failed to create trip' });
+      const message = err?.response?.data?.message || 'Failed to create trip';
+      set({ isLoading: false, error: message });
       return null;
     }
   },
 
   updateTrip: async (tripId, updates) => {
     try {
-      const { data } = await api.updateTrip(tripId, updates);
+      const payload = {
+        name: updates.name ?? get().currentTrip?.name,
+        description: updates.description ?? get().currentTrip?.description,
+        startDate: updates.startDate ?? get().currentTrip?.startDate,
+        endDate: updates.endDate ?? get().currentTrip?.endDate,
+        coverImage: updates.coverImage ?? get().currentTrip?.coverImage,
+        targetBudget: updates.targetBudget ?? updates.budget ?? get().currentTrip?.targetBudget,
+      };
+      const { data } = await api.updateTrip(tripId, payload);
       set((state) => ({
-        trips: state.trips.map((t) => (t.id === tripId ? data : t)),
-        currentTrip: state.currentTrip?.id === tripId ? data : state.currentTrip,
+        trips: state.trips.map((t) => (t.id === Number(tripId) ? data : t)),
+        currentTrip: state.currentTrip?.id === Number(tripId) ? data : state.currentTrip,
       }));
       return data;
     } catch (err) {
@@ -76,8 +95,8 @@ const useTripStore = create((set, get) => ({
     try {
       await api.deleteTrip(tripId);
       set((state) => ({
-        trips: state.trips.filter((t) => t.id !== tripId),
-        currentTrip: state.currentTrip?.id === tripId ? null : state.currentTrip,
+        trips: state.trips.filter((t) => t.id !== Number(tripId)),
+        currentTrip: state.currentTrip?.id === Number(tripId) ? null : state.currentTrip,
       }));
       return true;
     } catch (err) {
@@ -86,14 +105,15 @@ const useTripStore = create((set, get) => ({
     }
   },
 
-  // ─── Cities ─────────────────────────────
+  // ─── Cities & Activities ─────────────────
   fetchCities: async () => {
     try {
       const { data } = await api.getCities();
       set({ cities: data });
+      return data;
     } catch {
-      // Backend not ready yet
       set({ cities: [] });
+      return [];
     }
   },
 
@@ -101,18 +121,21 @@ const useTripStore = create((set, get) => ({
     try {
       const { data } = await api.getActivities(cityId);
       set({ activities: data });
+      return data;
     } catch {
       set({ activities: [] });
+      return [];
     }
   },
 
   fetchAllActivities: async () => {
     try {
-      // Assuming a generic endpoint to fetch all or we just wait for backend
-      const { data } = await api.getActivities(); 
+      const { data } = await api.getActivities();
       set({ activities: data });
+      return data;
     } catch {
       set({ activities: [] });
+      return [];
     }
   },
 
@@ -121,17 +144,15 @@ const useTripStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.getTripStops(tripId);
-      set({ tripStops: data, isLoading: false });
-
-      // Also fetch activities for each stop
       const activitiesMap = {};
       for (const stop of data) {
-        const { data: acts } = await api.getStopActivities(stop.id);
-        activitiesMap[stop.id] = acts;
+        activitiesMap[stop.id] = stop.activities || [];
       }
-      set({ tripActivities: activitiesMap });
+      set({ tripStops: data, tripActivities: activitiesMap, isLoading: false });
+      return data;
     } catch {
       set({ isLoading: false, error: 'Failed to load itinerary' });
+      return [];
     }
   },
 
@@ -140,7 +161,7 @@ const useTripStore = create((set, get) => ({
       const { data } = await api.addStop(tripId, stopData);
       set((state) => ({
         tripStops: [...state.tripStops, data],
-        tripActivities: { ...state.tripActivities, [data.id]: [] },
+        tripActivities: { ...state.tripActivities, [data.id]: data.activities || [] },
       }));
       return data;
     } catch {
@@ -149,11 +170,11 @@ const useTripStore = create((set, get) => ({
     }
   },
 
-  updateStop: async (stopId, updates) => {
+  updateStop: async (tripId, stopId, updates) => {
     try {
-      const { data } = await api.updateStop(stopId, updates);
+      const { data } = await api.updateStop(tripId, stopId, updates);
       set((state) => ({
-        tripStops: state.tripStops.map((s) => (s.id === stopId ? data : s)),
+        tripStops: state.tripStops.map((s) => (s.id === Number(stopId) ? data : s)),
       }));
       return data;
     } catch {
@@ -162,13 +183,13 @@ const useTripStore = create((set, get) => ({
     }
   },
 
-  removeStop: async (stopId) => {
+  removeStop: async (tripId, stopId) => {
     try {
-      await api.removeStop(stopId);
+      await api.removeStop(tripId, stopId);
       set((state) => {
         const { [stopId]: _, ...restActivities } = state.tripActivities;
         return {
-          tripStops: state.tripStops.filter((s) => s.id !== stopId),
+          tripStops: state.tripStops.filter((s) => s.id !== Number(stopId)),
           tripActivities: restActivities,
         };
       });
@@ -183,15 +204,17 @@ const useTripStore = create((set, get) => ({
     try {
       const { data } = await api.reorderStops(tripId, orderedStopIds);
       set({ tripStops: data });
+      return data;
     } catch {
       set({ error: 'Failed to reorder stops' });
+      return null;
     }
   },
 
   // ─── Trip Activities ────────────────────
-  addActivity: async (stopId, activityData) => {
+  addActivity: async (tripId, stopId, activityData) => {
     try {
-      const { data } = await api.addActivity(stopId, activityData);
+      const { data } = await api.addActivity(tripId, stopId, activityData);
       set((state) => ({
         tripActivities: {
           ...state.tripActivities,
@@ -205,14 +228,14 @@ const useTripStore = create((set, get) => ({
     }
   },
 
-  removeActivity: async (activityId, stopId) => {
+  removeActivity: async (tripId, stopId, activityId) => {
     try {
-      await api.removeActivity(activityId);
+      await api.removeActivity(tripId, stopId, activityId);
       set((state) => ({
         tripActivities: {
           ...state.tripActivities,
           [stopId]: (state.tripActivities[stopId] || []).filter(
-            (a) => a.id !== activityId
+            (a) => a.id !== Number(activityId)
           ),
         },
       }));
@@ -224,19 +247,27 @@ const useTripStore = create((set, get) => ({
   },
 
   // ─── Budget ─────────────────────────────
-  fetchBudget: async (tripId) => {
+  fetchBudget: async (tripId, tier = 'standard', currency = 'INR') => {
     set({ isLoading: true });
     try {
-      const { data } = await api.getBudget(tripId);
+      const { data } = await api.getBudget(tripId, tier, currency);
       set({ budget: data, isLoading: false });
+      return data;
     } catch {
       set({ isLoading: false, error: 'Failed to load budget' });
+      return null;
     }
   },
 
   // ─── Helpers ────────────────────────────
-  getCityById: (cityId) => get().cities.find((c) => c.id === cityId),
-  getActivityById: (actId) => get().activities.find((a) => a.id === actId),
+  getCityById: (cityId) => {
+    const fromCities = get().cities.find((c) => c.id === Number(cityId));
+    if (fromCities) return fromCities;
+    const stopWithCity = get().tripStops.find((s) => s.city?.id === Number(cityId) || s.cityId === Number(cityId));
+    return stopWithCity?.city || null;
+  },
+
+  getActivityById: (actId) => get().activities.find((a) => a.id === Number(actId)),
 
   clearCurrentTrip: () =>
     set({ currentTrip: null, tripStops: [], tripActivities: {}, budget: null }),

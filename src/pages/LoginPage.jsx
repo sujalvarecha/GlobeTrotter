@@ -3,36 +3,39 @@
  *
  * Split layout: left panel is a decorative departure board,
  * right panel is the auth form styled as a boarding pass stub.
- * Tab toggle flips between Login and Signup with an animated underline.
+ * Tab toggle flips cleanly between Check In (Login) and Register (Signup).
  */
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
+import useThemeStore from '../store/themeStore';
 
 const DESTINATIONS = [
   { code: 'TYO', city: 'TOKYO', status: 'ON TIME', gate: 'A12' },
   { code: 'CDG', city: 'PARIS', status: 'BOARDING', gate: 'B07' },
-  { code: 'IST', city: 'ISTANBUL', status: 'ON TIME', gate: 'C23' },
-  { code: 'CPT', city: 'CAPE TOWN', status: 'DELAYED', gate: 'D04' },
-  { code: 'RAK', city: 'MARRAKECH', status: 'ON TIME', gate: 'E15' },
-  { code: 'LIS', city: 'LISBON', status: 'BOARDING', gate: 'F09' },
-  { code: 'EZE', city: 'BUENOS AIRES', status: 'ON TIME', gate: 'G31' },
+  { code: 'BOM', city: 'MUMBAI', status: 'ON TIME', gate: 'D04' },
+  { code: 'DXB', city: 'DUBAI', status: 'ON TIME', gate: 'E15' },
+  { code: 'SIN', city: 'SINGAPORE', status: 'BOARDING', gate: 'F09' },
   { code: 'JAI', city: 'JAIPUR', status: 'ON TIME', gate: 'H08' },
-  { code: 'ICN', city: 'SEOUL', status: 'FINAL CALL', gate: 'A22' },
-  { code: 'KEF', city: 'REYKJAVIK', status: 'ON TIME', gate: 'B14' },
+  { code: 'GOI', city: 'GOA', status: 'FINAL CALL', gate: 'A22' },
+  { code: 'BCN', city: 'BARCELONA', status: 'ON TIME', gate: 'B14' },
+  { code: 'DEL', city: 'DELHI', status: 'ON TIME', gate: 'C10' },
+  { code: 'SYD', city: 'SYDNEY', status: 'ON TIME', gate: 'G31' },
 ];
 
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState('login');
-  const [resetSent, setResetSent] = useState(false);
+  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'signup'
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
   });
-  const { login, signup, forgotPassword, isLoading, error, clearError } = useAuthStore();
+
+  const { login, signup, isLoading, error, clearError } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -49,19 +52,14 @@ export default function LoginPage() {
       } else if (activeTab === 'signup') {
         await signup(formData.name, formData.email, formData.password);
         navigate('/');
-      } else if (activeTab === 'forgot') {
-        await forgotPassword(formData.email);
-        setResetSent(true);
       }
     } catch {
-      // Error is already set in the store
+      // Error is handled in store
     }
   };
 
   const switchTab = (tab) => {
     setActiveTab(tab);
-    setResetSent(false);
-    setFormData({ name: '', email: '', password: '' });
     clearError();
   };
 
@@ -70,10 +68,20 @@ export default function LoginPage() {
       {/* Amber accent strip */}
       <div className="h-1 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600" />
 
+      {/* Top right Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-full bg-navy-900 border border-navy-700 text-amber-400 hover:border-amber-400/50 transition-colors shadow-md"
+        >
+          <span>{theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}</span>
+        </button>
+      </div>
+
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* ── Left: Departure Board ── */}
         <div className="hidden lg:flex lg:w-1/2 bg-navy-900 flex-col justify-center items-center p-12 relative overflow-hidden">
-          {/* Decorative grid */}
           <div
             className="absolute inset-0 opacity-5"
             style={{
@@ -96,7 +104,6 @@ export default function LoginPage() {
 
             {/* Board rows */}
             <div className="bg-navy-800/60 border-x border-navy-600">
-              {/* Column headers */}
               <div className="grid grid-cols-4 px-6 py-2 border-b border-navy-700">
                 {['DEST', 'CITY', 'STATUS', 'GATE'].map((h) => (
                   <span
@@ -158,8 +165,8 @@ export default function LoginPage() {
             <h1 className="font-display text-4xl text-cream tracking-wide">
               GlobeTrotter
             </h1>
-            <p className="text-[11px] tracking-[0.25em] uppercase font-mono text-amber-400/70 mt-2">
-              Your boarding pass to adventure
+            <p className="text-xs font-mono text-amber-400/80 tracking-[0.25em] uppercase mt-2">
+              Your World • Your Journey
             </p>
           </div>
         </div>
@@ -167,75 +174,87 @@ export default function LoginPage() {
         {/* ── Right: Auth Form ── */}
         <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md">
-            {/* Mobile brand */}
-            <div className="lg:hidden text-center mb-10">
-              <div className="inline-flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded bg-amber-400 flex items-center justify-center text-navy-950 font-bold text-xl font-display">
+            {/* Mobile Brand */}
+            <div className="lg:hidden text-center mb-8">
+              <div className="inline-flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded bg-amber-400 flex items-center justify-center text-navy-950 font-bold font-display text-sm">
                   G
                 </div>
-                <h1 className="font-display text-3xl text-cream tracking-wide">
-                  GlobeTrotter
-                </h1>
+                <span className="font-display text-2xl text-cream">GlobeTrotter</span>
               </div>
-              <p className="text-[11px] tracking-[0.25em] uppercase font-mono text-amber-400/70">
-                Your boarding pass to adventure
+              <p className="text-[10px] font-mono text-amber-400/80 tracking-[0.2em] uppercase">
+                Intelligent Travel Planner
               </p>
             </div>
 
-            {/* Boarding pass card */}
-            <div className="bg-navy-900 border border-navy-700 rounded-lg overflow-hidden">
-              {/* Card header with perforated bottom */}
-              <div className="bg-navy-800 px-8 pt-6 pb-5 border-b border-dashed border-navy-600">
+            {/* Ticket stub container */}
+            <div className="ticket-card rounded-lg overflow-hidden shadow-2xl">
+              {/* Header */}
+              <div className="p-6 pb-4 bg-navy-900 border-b border-navy-700">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] tracking-[0.3em] uppercase font-mono text-slate-500">
-                    Passenger Access
+                  <span className="text-[10px] tracking-[0.25em] uppercase font-mono text-amber-400">
+                    Boarding Pass
                   </span>
-                  <span className="text-[10px] tracking-[0.2em] font-mono text-amber-400/60">
-                    GATE GT-01
+                  <span className="text-[10px] tracking-[0.2em] font-mono text-slate-500">
+                    GATE 01
                   </span>
                 </div>
 
                 {/* Tab toggle */}
-                <div className="flex gap-0">
-                  {['login', 'signup'].map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => switchTab(tab)}
-                      className={`relative flex-1 py-3 text-xs tracking-[0.2em] uppercase font-mono transition-colors ${
-                        activeTab === tab
-                          ? 'text-amber-400'
-                          : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      {tab === 'login' ? 'Board' : 'Register'}
-                      {activeTab === tab && (
-                        <motion.div
-                          layoutId="tab-indicator"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400"
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        />
-                      )}
-                    </button>
-                  ))}
+                <div className="flex border-b border-navy-700 relative">
+                  <button
+                    type="button"
+                    onClick={() => switchTab('login')}
+                    className={`flex-1 pb-3 text-xs tracking-[0.2em] uppercase font-mono font-semibold transition-colors ${
+                      activeTab === 'login' ? 'text-amber-400' : 'text-slate-500 hover:text-slate-400'
+                    }`}
+                  >
+                    Check In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchTab('signup')}
+                    className={`flex-1 pb-3 text-xs tracking-[0.2em] uppercase font-mono font-semibold transition-colors ${
+                      activeTab === 'signup' ? 'text-amber-400' : 'text-slate-500 hover:text-slate-400'
+                    }`}
+                  >
+                    Register
+                  </button>
+
+                  <motion.div
+                    className="absolute bottom-0 h-0.5 bg-amber-400"
+                    initial={false}
+                    animate={{
+                      left: activeTab === 'login' ? '0%' : '50%',
+                      width: '50%',
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
                 </div>
               </div>
 
+              {/* Perforated divider */}
+              <div className="border-t border-dashed border-navy-600 relative">
+                <div className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-navy-950" />
+                <div className="absolute -right-3 -top-3 w-6 h-6 rounded-full bg-navy-950" />
+              </div>
+
               {/* Form body */}
-              <div className="px-8 py-8">
+              <div className="p-6 bg-navy-900/90">
                 <AnimatePresence mode="wait">
                   <motion.form
                     key={activeTab}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
+                    exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                     onSubmit={handleSubmit}
-                    className="space-y-5"
+                    className="space-y-4"
                   >
                     {activeTab === 'signup' && (
                       <div>
-                        <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-2">
-                          Full Name
+                        <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-1.5">
+                          Traveler Name
                         </label>
                         <input
                           type="text"
@@ -243,14 +262,14 @@ export default function LoginPage() {
                           value={formData.name}
                           onChange={handleChange}
                           required
-                          placeholder="e.g. Arjun Mehta"
+                          placeholder="e.g. Maya Lin"
                           className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-sm text-cream font-mono placeholder:text-navy-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
                         />
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-2">
+                      <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-1.5">
                         Email Address
                       </label>
                       <input
@@ -259,44 +278,25 @@ export default function LoginPage() {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        placeholder="traveler@example.com"
+                        placeholder="traveler@globetrotter.io"
                         className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-sm text-cream font-mono placeholder:text-navy-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
                       />
                     </div>
 
-                    {activeTab !== 'forgot' && (
-                      <div>
-                        <div className="flex justify-between items-end mb-2">
-                          <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500">
-                            Password
-                          </label>
-                          {activeTab === 'login' && (
-                            <button
-                              type="button"
-                              onClick={() => switchTab('forgot')}
-                              className="text-[10px] font-mono text-amber-400 hover:text-amber-300 tracking-wider"
-                            >
-                              Forgot?
-                            </button>
-                          )}
-                        </div>
-                        <input
-                          type="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          required
-                          placeholder="••••••••"
-                          className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-sm text-cream font-mono placeholder:text-navy-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                        />
-                      </div>
-                    )}
-
-                    {activeTab === 'forgot' && resetSent && (
-                      <div className="bg-success/10 border border-success/30 rounded px-4 py-3 text-xs text-success font-mono text-center">
-                        Recovery link sent to {formData.email}. Check your inbox!
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-1.5">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                        placeholder="••••••••••••"
+                        className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-sm text-cream font-mono placeholder:text-navy-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                      />
+                    </div>
 
                     {/* Error message */}
                     <AnimatePresence>
@@ -314,8 +314,8 @@ export default function LoginPage() {
 
                     <button
                       type="submit"
-                      disabled={isLoading || (activeTab === 'forgot' && resetSent)}
-                      className="w-full bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase py-3.5 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                      disabled={isLoading}
+                      className="w-full bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase py-3.5 rounded transition-all disabled:opacity-50 relative overflow-hidden group shadow-lg"
                     >
                       {isLoading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -327,28 +327,12 @@ export default function LoginPage() {
                         </span>
                       ) : activeTab === 'login' ? (
                         'Board Now →'
-                      ) : activeTab === 'signup' ? (
-                        'Get Your Pass →'
-                      ) : resetSent ? (
-                        'Sent ✓'
                       ) : (
-                        'Reset Password →'
+                        'Get Your Pass →'
                       )}
-                      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
                     </button>
-
-                    {activeTab === 'forgot' && (
-                      <button
-                        type="button"
-                        onClick={() => switchTab('login')}
-                        className="w-full text-center text-xs font-mono text-slate-500 hover:text-amber-400 mt-4 transition-colors"
-                      >
-                        ← Back to Login
-                      </button>
-                    )}
                   </motion.form>
                 </AnimatePresence>
-
               </div>
             </div>
 
@@ -356,7 +340,7 @@ export default function LoginPage() {
             <div className="mt-6 flex items-center justify-center gap-4">
               <div className="h-px flex-1 bg-navy-800" />
               <span className="text-[9px] tracking-[0.3em] uppercase font-mono text-navy-600">
-                ✈ Safe travels
+                ✈ Safe travels with GlobeTrotter
               </span>
               <div className="h-px flex-1 bg-navy-800" />
             </div>

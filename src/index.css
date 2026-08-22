@@ -3,8 +3,8 @@
 /*
  * GlobeTrotter — "Boarding Pass / Departure Board" Design System
  * 
- * Dark navy + warm amber palette. Monospace numerals for dates/costs.
- * Ticket-stub cards with perforated edges. Departure-board feel throughout.
+ * Dark navy + warm amber palette (Dark Mode) & Crisp cream + amber (Light Mode).
+ * Monospace numerals for dates/costs. Ticket-stub cards with perforated edges.
  */
 
 @theme {
@@ -55,14 +55,40 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
+/* ── Light Mode Token Overrides ── */
+html.light {
+  --color-navy-50: #0A1628;
+  --color-navy-100: #0D1A2F;
+  --color-navy-200: #1B2D4A;
+  --color-navy-300: #334155;
+  --color-navy-400: #475569;
+  --color-navy-500: #CBD5E1;
+  --color-navy-600: #E2E8F0;
+  --color-navy-700: #E2E8F0;
+  --color-navy-800: #F1F5F9;
+  --color-navy-900: #F8FAFC;
+  --color-navy-950: #FAF7F2;
+
+  --color-slate-200: #0F172A;
+  --color-slate-300: #1E293B;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748B;
+  --color-slate-600: #94A3B8;
+  --color-slate-700: #E2E8F0;
+
+  --color-cream: #0F172A;
+  --color-cream-dark: #1E293B;
+}
+
 /* ── Base layer ── */
 @layer base {
   html {
     font-family: var(--font-sans);
     scroll-behavior: smooth;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
-  /* Custom scrollbar for dark theme */
+  /* Custom scrollbars */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;

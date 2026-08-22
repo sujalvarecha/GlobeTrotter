@@ -14,7 +14,10 @@ const getStoredAuth = () => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      return { user: parsed.user, token: parsed.token, isAuthenticated: true };
+      const token = parsed.token || parsed.accessToken;
+      if (token) {
+        return { user: parsed.user, token, isAuthenticated: true };
+      }
     }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
@@ -22,7 +25,7 @@ const getStoredAuth = () => {
   return { user: null, token: null, isAuthenticated: false };
 };
 
-const useAuthStore = create((set) => ({
+const useAuthStore = create((set, get) => ({
   ...getStoredAuth(),
   isLoading: false,
   error: null,
@@ -31,12 +34,14 @@ const useAuthStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const { data } = await api.login({ email, password });
-      const authState = { user: data.user, token: data.token, isAuthenticated: true };
+      const token = data.accessToken || data.token;
+      const user = data.user;
+      const authState = { user, token, isAuthenticated: true };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
       set({ ...authState, isLoading: false });
       return data;
     } catch (err) {
-      const message = err?.response?.data?.message || 'Login failed';
+      const message = err?.response?.data?.message || err?.message || 'Login failed';
       set({ isLoading: false, error: message });
       throw new Error(message);
     }
@@ -46,12 +51,14 @@ const useAuthStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const { data } = await api.signup({ name, email, password });
-      const authState = { user: data.user, token: data.token, isAuthenticated: true };
+      const token = data.accessToken || data.token;
+      const user = data.user;
+      const authState = { user, token, isAuthenticated: true };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
       set({ ...authState, isLoading: false });
       return data;
     } catch (err) {
-      const message = err?.response?.data?.message || 'Signup failed';
+      const message = err?.response?.data?.message || err?.message || 'Signup failed';
       set({ isLoading: false, error: message });
       throw new Error(message);
     }
@@ -60,13 +67,23 @@ const useAuthStore = create((set) => ({
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
     try {
-      await api.forgotPassword({ email });
+      const res = await api.forgotPassword({ email });
       set({ isLoading: false });
+      return res.data;
     } catch (err) {
       const message = err?.response?.data?.message || 'Failed to send reset link';
       set({ isLoading: false, error: message });
       throw new Error(message);
     }
+  },
+
+  updateUser: (updatedFields) => {
+    const currentUser = get().user;
+    const newUser = { ...currentUser, ...updatedFields };
+    const currentToken = get().token;
+    const authState = { user: newUser, token: currentToken, isAuthenticated: true };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
+    set({ user: newUser });
   },
 
   logout: () => {

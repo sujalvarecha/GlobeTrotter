@@ -5,26 +5,44 @@
  * Submitting creates the trip and navigates to the itinerary builder.
  */
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import useAuthStore from '../store/authStore';
 import useTripStore from '../store/tripStore';
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const { createTrip, isLoading } = useTripStore();
+  const [searchParams] = useSearchParams();
+  const { createTrip, isLoading, error } = useTripStore();
+
+  const destParam = searchParams.get('destination');
+  const imgParam = searchParams.get('image');
 
   const [form, setForm] = useState({
-    name: '',
-    description: '',
+    name: destParam ? `Journey to ${destParam}` : '',
+    description: destParam ? `Exciting voyage exploring ${destParam}` : '',
     startDate: '',
     endDate: '',
     budget: '',
+    coverImage: imgParam || '',
   });
-  const [coverPreview, setCoverPreview] = useState(null);
-  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(imgParam || null);
+  const [useUrlInput, setUseUrlInput] = useState(!!imgParam);
+
+  useEffect(() => {
+    if (destParam && !form.name) {
+      setForm((prev) => ({
+        ...prev,
+        name: `Journey to ${destParam}`,
+        description: `Exciting voyage exploring ${destParam}`,
+      }));
+    }
+    if (imgParam && !form.coverImage) {
+      setForm((prev) => ({ ...prev, coverImage: imgParam }));
+      setCoverPreview(imgParam);
+      setUseUrlInput(true);
+    }
+  }, [destParam, imgParam]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -33,25 +51,50 @@ export default function CreateTripPage() {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setCoverPreview(url);
-      setCoverImage(url);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Compress & resize image to max 1200px
+          const canvas = document.createElement('canvas');
+          const maxDim = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setCoverPreview(compressedDataUrl);
+          setForm((prev) => ({ ...prev, coverImage: compressedDataUrl }));
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const tripData = {
-      userId: user.id,
       name: form.name,
       description: form.description,
       startDate: form.startDate,
       endDate: form.endDate,
-      coverImage: coverImage || '',
-      budget: form.budget ? parseInt(form.budget, 10) : 0,
+      coverImage: form.coverImage || coverPreview || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=1200',
+      targetBudget: form.budget ? parseFloat(form.budget) : 0.0,
     };
     const created = await createTrip(tripData);
-    if (created) {
+    if (created && created.id) {
       navigate(`/trips/${created.id}/itinerary/edit`);
     }
   };
@@ -63,7 +106,7 @@ export default function CreateTripPage() {
           Math.ceil(
             (new Date(form.endDate) - new Date(form.startDate)) /
               (1000 * 60 * 60 * 24)
-          )
+          ) + 1
         )
       : 0;
 
@@ -86,24 +129,25 @@ export default function CreateTripPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-navy-900 border border-navy-700 rounded-lg overflow-hidden"
+        className="bg-navy-900 border border-navy-700 rounded-lg overflow-hidden shadow-2xl"
       >
         {/* Cover image zone */}
         <div className="relative h-48 bg-navy-800 overflow-hidden group">
-          {coverPreview ? (
+          {coverPreview || form.coverImage ? (
             <img
-              src={coverPreview}
+              src={coverPreview || form.coverImage}
               alt="Cover preview"
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-3">
               <span className="text-3xl text-slate-600">📷</span>
-              <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-slate-600">
-                Cover Image (Optional)
+              <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500">
+                Upload Custom Photo or Choose Web Image
               </span>
             </div>
           )}
+          
           <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-navy-950/0 hover:bg-navy-950/60 transition-colors">
             <input
               type="file"
@@ -111,11 +155,38 @@ export default function CreateTripPage() {
               onChange={handleImageChange}
               className="hidden"
             />
-            <span className="text-xs font-mono text-cream opacity-0 group-hover:opacity-100 transition-opacity bg-navy-800/80 px-4 py-2 rounded">
-              {coverPreview ? 'Change Image' : 'Upload Cover'}
+            <span className="text-xs font-mono text-cream opacity-0 group-hover:opacity-100 transition-opacity bg-navy-800/90 px-4 py-2 rounded shadow-lg">
+              {coverPreview || form.coverImage ? 'Change Image' : 'Upload From Computer'}
             </span>
           </label>
         </div>
+
+        {/* Optional Image URL Toggle */}
+        <div className="px-6 py-2 bg-navy-950/80 border-b border-navy-800 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setUseUrlInput(!useUrlInput)}
+            className="text-[10px] font-mono text-amber-400/80 hover:text-amber-400 tracking-wider uppercase underline"
+          >
+            {useUrlInput ? '✕ Hide Image URL' : '🔗 Or Paste Online Image URL'}
+          </button>
+        </div>
+
+        {useUrlInput && (
+          <div className="p-4 bg-navy-950/90 border-b border-navy-800">
+            <input
+              type="url"
+              name="coverImage"
+              value={form.coverImage}
+              onChange={(e) => {
+                handleChange(e);
+                setCoverPreview(e.target.value);
+              }}
+              placeholder="https://images.unsplash.com/photo-..."
+              className="w-full bg-navy-900 border border-navy-700 rounded px-3 py-2 text-xs text-cream font-mono placeholder:text-navy-600 focus:border-amber-400 focus:outline-none"
+            />
+          </div>
+        )}
 
         {/* Perforated divider */}
         <div className="border-t border-dashed border-navy-600 relative">
@@ -125,6 +196,12 @@ export default function CreateTripPage() {
 
         {/* Form body */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+          {error && (
+            <div className="bg-danger/10 border border-danger/30 text-danger text-xs font-mono p-3 rounded">
+              ⚠ {error}
+            </div>
+          )}
+
           {/* Trip name */}
           <div>
             <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-2">
@@ -136,7 +213,7 @@ export default function CreateTripPage() {
               value={form.name}
               onChange={handleChange}
               required
-              placeholder="e.g. East Asia Explorer"
+              placeholder="e.g. Grand Tour of India & Japan"
               className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-cream font-display text-lg placeholder:text-navy-500 placeholder:font-sans placeholder:text-sm focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
             />
           </div>
@@ -204,7 +281,7 @@ export default function CreateTripPage() {
           {/* Budget */}
           <div>
             <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-2">
-              Budget (₹) — Optional
+              Target Budget (₹) — Optional
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-sm">
@@ -227,7 +304,7 @@ export default function CreateTripPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase py-3.5 rounded transition-all disabled:opacity-50 relative overflow-hidden group"
+              className="w-full bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase py-3.5 rounded transition-all disabled:opacity-50 relative overflow-hidden group shadow-lg"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -235,7 +312,7 @@ export default function CreateTripPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Creating...
+                  Creating Boarding Pass...
                 </span>
               ) : (
                 'Create Trip & Build Itinerary →'

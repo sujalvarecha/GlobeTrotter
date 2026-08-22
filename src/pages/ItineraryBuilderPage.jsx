@@ -26,7 +26,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import useTripStore from '../store/tripStore';
-import * as api from '../services/api';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -45,7 +44,18 @@ const CATEGORIES = {
 };
 
 // ─── Sortable Stop Item ──────────────────────────────────
-function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, tripActivities, onAddActivity, onRemoveActivity }) {
+function SortableStop({
+  tripId,
+  stop,
+  isExpanded,
+  onToggle,
+  onRemove,
+  city,
+  activities,
+  tripActivities,
+  onAddActivity,
+  onRemoveActivity,
+}) {
   const {
     attributes,
     listeners,
@@ -62,8 +72,15 @@ function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, 
     opacity: isDragging ? 0.8 : 1,
   };
 
+  const currentCity = stop.city || city;
+  const cityId = currentCity?.id || stop.cityId;
+
   return (
-    <div ref={setNodeRef} style={style} className={`ticket-card rounded-lg overflow-hidden ${isDragging ? 'ring-2 ring-amber-400/50' : ''}`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`ticket-card rounded-lg overflow-hidden ${isDragging ? 'ring-2 ring-amber-400/50' : ''}`}
+    >
       {/* Stop header */}
       <div className="flex items-center gap-3 p-4">
         {/* Drag handle */}
@@ -81,16 +98,16 @@ function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, 
 
         {/* Stop order badge */}
         <div className="w-7 h-7 rounded bg-amber-400/10 border border-amber-400/30 flex items-center justify-center flex-shrink-0">
-          <span className="text-xs font-mono font-bold text-amber-400">{stop.stopOrder}</span>
+          <span className="text-xs font-mono font-bold text-amber-400">{stop.stopOrder || 1}</span>
         </div>
 
         {/* City info */}
         <div className="flex-1 min-w-0" onClick={onToggle}>
           <h3 className="font-display text-base text-cream truncate cursor-pointer hover:text-amber-400 transition-colors">
-            {city?.name || 'Unknown City'}
+            {currentCity?.name || 'Destination'}
           </h3>
           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
-            <span>{city?.country}</span>
+            <span>{currentCity?.country}</span>
             {stop.startDate && stop.endDate && (
               <>
                 <span>•</span>
@@ -103,7 +120,7 @@ function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, 
         </div>
 
         {/* Activity count */}
-        <span className="text-[10px] font-mono text-slate-600">
+        <span className="text-[10px] font-mono text-slate-500">
           {(tripActivities || []).length} act.
         </span>
 
@@ -138,29 +155,31 @@ function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, 
               {(tripActivities || []).length > 0 ? (
                 <div className="space-y-2">
                   {tripActivities.map((ta) => {
-                    const act = activities.find((a) => a.id === ta.activityId);
-                    if (!act) return null;
-                    const cat = CATEGORIES[act.category] || CATEGORIES.sightseeing;
+                    const actName = ta.activityName || ta.activity?.name || activities.find((a) => a.id === ta.activityId)?.name || 'Activity';
+                    const actCategory = (ta.category || ta.activity?.category || activities.find((a) => a.id === ta.activityId)?.category || 'sightseeing').toLowerCase();
+                    const actCost = ta.estimatedCost !== undefined ? ta.estimatedCost : (ta.activity?.estimatedCost || activities.find((a) => a.id === ta.activityId)?.estimatedCost || 0);
+                    const cat = CATEGORIES[actCategory] || CATEGORIES.sightseeing;
+
                     return (
                       <div
                         key={ta.id}
-                        className="flex items-center gap-3 bg-navy-950/50 rounded px-3 py-2 group/act"
+                        className="flex items-center gap-3 bg-navy-950/60 rounded px-3 py-2 group/act border border-navy-800"
                       >
                         <span className="text-sm">{cat.icon}</span>
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs text-cream truncate block">{act.name}</span>
+                          <span className="text-xs text-cream truncate block">{actName}</span>
                           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
                             {ta.startTime && <span>{ta.startTime}–{ta.endTime}</span>}
                             <span className={`px-1.5 py-0.5 rounded text-[9px] ${cat.color}`}>
-                              {act.category}
+                              {actCategory}
                             </span>
                           </div>
                         </div>
                         <span className="text-xs font-mono text-amber-400/80">
-                          ₹{act.estimatedCost.toLocaleString('en-IN')}
+                          ₹{Math.round(actCost * 83).toLocaleString('en-IN')}
                         </span>
                         <button
-                          onClick={() => onRemoveActivity(ta.id, stop.id)}
+                          onClick={() => onRemoveActivity(tripId, stop.id, ta.id)}
                           className="opacity-0 group-hover/act:opacity-100 text-slate-600 hover:text-danger transition-all"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,10 +198,11 @@ function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, 
 
               {/* Add activity dropdown */}
               <AddActivityWidget
-                cityId={stop.cityId}
+                cityId={cityId}
                 allActivities={activities}
                 existingIds={(tripActivities || []).map((ta) => ta.activityId)}
                 stopId={stop.id}
+                tripId={tripId}
                 stopStartDate={stop.startDate}
                 onAdd={onAddActivity}
               />
@@ -195,20 +215,25 @@ function SortableStop({ stop, isExpanded, onToggle, onRemove, city, activities, 
 }
 
 // ─── Add Activity Widget ─────────────────────────────────
-function AddActivityWidget({ cityId, allActivities, existingIds, stopId, stopStartDate, onAdd }) {
+function AddActivityWidget({ cityId, allActivities, existingIds, stopId, tripId, stopStartDate, onAdd }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
   const cityActivities = allActivities
-    .filter((a) => a.cityId === cityId && !existingIds.includes(a.id))
+    .filter((a) => (cityId ? a.cityId === cityId : true) && !existingIds.includes(a.id))
     .filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleAdd = async (activity) => {
-    await onAdd(stopId, {
+    const duration = activity.durationMinutes || activity.duration || 120;
+    const endHour = Math.min(23, Math.floor(9 + duration / 60));
+    const endMin = duration % 60;
+    const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+
+    await onAdd(tripId, stopId, {
       activityId: activity.id,
-      date: stopStartDate || '',
+      activityDate: stopStartDate || null,
       startTime: '09:00',
-      endTime: `${Math.floor(9 + activity.duration / 60).toString().padStart(2, '0')}:${(activity.duration % 60).toString().padStart(2, '0')}`,
+      endTime: endTimeStr,
       notes: '',
     });
     setSearch('');
@@ -219,7 +244,7 @@ function AddActivityWidget({ cityId, allActivities, existingIds, stopId, stopSta
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full py-2 border border-dashed border-navy-600 hover:border-amber-400/40 rounded text-[10px] tracking-[0.15em] uppercase font-mono text-slate-500 hover:text-amber-400 transition-colors"
+        className="w-full py-2 border border-dashed border-navy-600 hover:border-amber-400/40 rounded text-[10px] tracking-[0.15em] uppercase font-mono text-slate-400 hover:text-amber-400 transition-colors"
       >
         + Add Activity
       </button>
@@ -244,16 +269,17 @@ function AddActivityWidget({ cityId, allActivities, existingIds, stopId, stopSta
               <div className="max-h-48 overflow-y-auto">
                 {cityActivities.length === 0 ? (
                   <div className="px-3 py-4 text-center text-[10px] font-mono text-slate-600">
-                    No activities found for this city
+                    {search ? 'No matching activities' : 'No activities available for this city'}
                   </div>
                 ) : (
                   cityActivities.map((act) => {
-                    const cat = CATEGORIES[act.category] || CATEGORIES.sightseeing;
+                    const cat = CATEGORIES[act.category?.toLowerCase()] || CATEGORIES.sightseeing;
+                    const duration = act.durationMinutes || act.duration || 120;
                     return (
                       <button
                         key={act.id}
                         onClick={() => handleAdd(act)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-navy-800 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-navy-800 transition-colors text-left border-b border-navy-900 last:border-0"
                       >
                         <span className="text-sm">{cat.icon}</span>
                         <div className="flex-1 min-w-0">
@@ -264,10 +290,10 @@ function AddActivityWidget({ cityId, allActivities, existingIds, stopId, stopSta
                         </div>
                         <div className="text-right flex-shrink-0">
                           <span className="text-xs font-mono text-amber-400/80 block">
-                            ₹{act.estimatedCost.toLocaleString('en-IN')}
+                            ₹{Math.round(act.estimatedCost * 83).toLocaleString('en-IN')}
                           </span>
                           <span className="text-[9px] font-mono text-slate-600">
-                            {Math.floor(act.duration / 60)}h{act.duration % 60 > 0 ? ` ${act.duration % 60}m` : ''}
+                            {Math.floor(duration / 60)}h{duration % 60 > 0 ? ` ${duration % 60}m` : ''}
                           </span>
                         </div>
                       </button>
@@ -309,7 +335,7 @@ function AddStopWidget({ cities, existingCityIds, tripId, tripStartDate, tripEnd
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full py-4 border-2 border-dashed border-navy-700 hover:border-amber-400/40 rounded-lg text-xs tracking-[0.15em] uppercase font-mono text-slate-500 hover:text-amber-400 transition-colors"
+        className="w-full py-4 border-2 border-dashed border-navy-700 hover:border-amber-400/40 rounded-lg text-xs tracking-[0.15em] uppercase font-mono text-slate-400 hover:text-amber-400 transition-colors"
       >
         + Add City Stop
       </button>
@@ -322,41 +348,41 @@ function AddStopWidget({ cities, existingCityIds, tripId, tripStartDate, tripEnd
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mt-3"
           >
-            <div className="bg-navy-900 border border-navy-700 rounded-lg overflow-hidden">
+            <div className="bg-navy-900 border border-navy-700 rounded-lg overflow-hidden shadow-xl">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search cities..."
+                placeholder="Search cities to add..."
                 autoFocus
                 className="w-full bg-transparent border-b border-navy-700 px-4 py-3 text-sm text-cream placeholder:text-navy-500 focus:outline-none font-mono"
               />
               <div className="max-h-64 overflow-y-auto">
                 {available.length === 0 ? (
                   <div className="px-4 py-6 text-center text-xs font-mono text-slate-600">
-                    {search ? 'No cities match your search' : 'All cities already added'}
+                    {search ? 'No cities match your search' : 'All available cities added'}
                   </div>
                 ) : (
                   available.map((city) => (
                     <button
                       key={city.id}
                       onClick={() => handleAdd(city)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-navy-800 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-navy-800 transition-colors text-left border-b border-navy-800 last:border-0"
                     >
                       <img
-                        src={city.imageUrl}
+                        src={city.imageUrl || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34'}
                         alt={city.name}
                         className="w-10 h-10 rounded object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm text-cream block">{city.name}</span>
-                        <span className="text-[10px] font-mono text-slate-500">
+                        <span className="text-sm text-cream block font-medium">{city.name}</span>
+                        <span className="text-[10px] font-mono text-slate-400">
                           {city.country} • {city.region}
                         </span>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <span className="text-[10px] font-mono text-amber-400/60 block">
-                          Cost Index: {city.costIndex}/10
+                        <span className="text-[10px] font-mono text-amber-400/80 block">
+                          Cost Index: {city.costIndex}/5
                         </span>
                       </div>
                     </button>
@@ -390,16 +416,18 @@ export default function ItineraryBuilderPage() {
     getCityById,
     isLoading,
     activities: allActivities,
-    fetchAllActivities
+    fetchAllActivities,
   } = useTripStore();
 
   const [expandedStops, setExpandedStops] = useState({});
 
   useEffect(() => {
-    fetchTrip(tripId);
-    fetchTripStops(tripId);
-    fetchCities();
-    fetchAllActivities();
+    if (tripId) {
+      fetchTrip(tripId);
+      fetchTripStops(tripId);
+      fetchCities();
+      fetchAllActivities();
+    }
   }, [tripId, fetchTrip, fetchTripStops, fetchCities, fetchAllActivities]);
 
   const sensors = useSensors(
@@ -409,7 +437,7 @@ export default function ItineraryBuilderPage() {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       const oldIndex = tripStops.findIndex((s) => s.id === active.id);
       const newIndex = tripStops.findIndex((s) => s.id === over.id);
       const newOrder = arrayMove(tripStops, oldIndex, newIndex);
@@ -422,10 +450,10 @@ export default function ItineraryBuilderPage() {
   };
 
   const handleRemoveStop = async (stopId) => {
-    await removeStop(stopId);
+    await removeStop(tripId, stopId);
   };
 
-  const existingCityIds = tripStops.map((s) => s.cityId);
+  const existingCityIds = tripStops.map((s) => s.city?.id || s.cityId).filter(Boolean);
 
   // Calculate total cost
   const totalCost = useMemo(() => {
@@ -433,7 +461,8 @@ export default function ItineraryBuilderPage() {
     Object.values(tripActivities).forEach((acts) => {
       acts.forEach((ta) => {
         const act = allActivities.find((a) => a.id === ta.activityId);
-        if (act) total += act.estimatedCost;
+        const cost = ta.estimatedCost !== undefined ? ta.estimatedCost : (act?.estimatedCost || 0);
+        total += Math.round(cost * 83);
       });
     });
     return total;
@@ -490,7 +519,7 @@ export default function ItineraryBuilderPage() {
         <div className="mb-6 bg-navy-900/50 rounded-lg p-4">
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             {tripStops.map((stop, i) => {
-              const city = getCityById(stop.cityId);
+              const city = stop.city || getCityById(stop.cityId);
               return (
                 <div key={stop.id} className="flex items-center flex-shrink-0">
                   <div className="flex flex-col items-center">
@@ -522,17 +551,18 @@ export default function ItineraryBuilderPage() {
             strategy={verticalListSortingStrategy}
           >
             {tripStops.map((stop) => {
-              const city = getCityById(stop.cityId);
+              const city = stop.city || getCityById(stop.cityId);
               return (
                 <SortableStop
                   key={stop.id}
+                  tripId={tripId}
                   stop={stop}
                   city={city}
                   isExpanded={expandedStops[stop.id]}
                   onToggle={() => toggleStop(stop.id)}
                   onRemove={() => handleRemoveStop(stop.id)}
                   activities={allActivities}
-                  tripActivities={tripActivities[stop.id] || []}
+                  tripActivities={tripActivities[stop.id] || stop.activities || []}
                   onAddActivity={addActivity}
                   onRemoveActivity={removeActivity}
                 />

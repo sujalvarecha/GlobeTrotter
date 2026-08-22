@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
+import useThemeStore from '../store/themeStore';
 import AiWizardModal from './AiWizardModal';
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
 
@@ -74,6 +76,18 @@ export default function AppLayout() {
 
             {/* User section & Actions */}
             <div className="flex items-center gap-3">
+              {/* Theme Switcher Toggle */}
+              <button
+                onClick={toggleTheme}
+                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded bg-navy-800 hover:bg-navy-700 border border-navy-600 text-amber-400 transition-colors shadow-sm"
+              >
+                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+                <span className="hidden xl:inline text-[10px] uppercase font-bold text-slate-300">
+                  {theme === 'dark' ? 'Light' : 'Dark'}
+                </span>
+              </button>
+
               <button 
                 onClick={() => setIsAiWizardOpen(true)}
                 className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400 rounded transition-colors shadow-sm"
@@ -81,9 +95,11 @@ export default function AppLayout() {
                 <span className="text-sm">✨</span> AI Wizard
               </button>
 
-              <NavLink to="/admin" className="hidden sm:flex text-xs font-mono text-slate-400 hover:text-amber-400 p-2">
-                Admin
-              </NavLink>
+              {(user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN') && (
+                <NavLink to="/admin" className="hidden sm:flex text-xs font-mono text-amber-400 bg-amber-400/10 border border-amber-400/30 hover:bg-amber-400/20 px-2.5 py-1 rounded font-bold transition-colors">
+                  ⚡ Admin
+                </NavLink>
+              )}
 
               {user && (
                 <NavLink
@@ -91,9 +107,9 @@ export default function AppLayout() {
                   className="hidden sm:flex items-center gap-2 bg-navy-950/60 px-3 py-1.5 rounded-full border border-navy-700 hover:border-amber-400/50 transition-colors"
                 >
                   <img
-                    src={user.profileImage}
+                    src={user.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300'}
                     alt={user.name}
-                    className="w-7 h-7 rounded-full border border-amber-400/30"
+                    className="w-7 h-7 rounded-full border border-amber-400/30 object-cover"
                   />
                   <span className="text-xs text-cream font-mono font-semibold hover:text-amber-400 transition-colors">
                     {user.name}

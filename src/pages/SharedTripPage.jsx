@@ -37,10 +37,10 @@ const CATEGORIES = {
 export default function SharedTripPage() {
   const { shareToken } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const { fetchTrips } = useTripStore();
 
-  const [data, setData] = useState(null);
+  const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copying, setCopying] = useState(false);
@@ -50,14 +50,14 @@ export default function SharedTripPage() {
     const load = async () => {
       try {
         const { data: result } = await api.getPublicTrip(shareToken);
-        setData(result);
+        setTrip(result);
       } catch (err) {
-        setError(err?.response?.data?.message || 'Trip not found');
+        setError(err?.response?.data?.message || 'This trip is private, expired, or does not exist.');
       } finally {
         setLoading(false);
       }
     };
-    load();
+    if (shareToken) load();
   }, [shareToken]);
 
   const handleCopyTrip = async () => {
@@ -67,15 +67,14 @@ export default function SharedTripPage() {
     }
     setCopying(true);
     try {
-      await api.copyTrip(shareToken, user.id);
+      const { data: cloned } = await api.copyTrip(shareToken);
       setCopied(true);
-      // Refresh user's trips
-      fetchTrips(user.id);
+      fetchTrips();
       setTimeout(() => {
-        navigate('/trips');
-      }, 1500);
+        navigate(`/trips/${cloned.id}/itinerary`);
+      }, 1200);
     } catch {
-      setError('Failed to copy trip');
+      setError('Failed to copy trip to your account.');
     } finally {
       setCopying(false);
     }
@@ -89,7 +88,7 @@ export default function SharedTripPage() {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="text-4xl mb-4 inline-block"
+            className="text-4xl mb-4 inline-block text-amber-400"
           >
             ✈
           </motion.div>
@@ -102,56 +101,59 @@ export default function SharedTripPage() {
   }
 
   // Error state
-  if (error && !data) {
+  if (error && !trip) {
     return (
-      <div className="min-h-screen bg-navy-950 flex items-center justify-center">
+      <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <div className="text-5xl mb-6">🔒</div>
           <h2 className="font-display text-2xl text-cream mb-3">Trip Unavailable</h2>
           <p className="text-sm text-slate-400 mb-6">{error}</p>
           <div className="bg-navy-900 border border-navy-700 rounded-lg p-4 mb-6">
             <p className="text-[10px] font-mono text-slate-500">
-              This trip may be private, deleted, or the link may be incorrect.
+              The creator might have set this journey to private, or the link may have been updated.
             </p>
           </div>
           <Link
             to="/"
             className="inline-flex items-center gap-2 text-xs font-mono text-amber-400 hover:underline"
           >
-            ← Go to GlobeTrotter
+            ← Explore GlobeTrotter
           </Link>
         </div>
       </div>
     );
   }
 
-  const { trip, stops } = data;
+  const stops = trip.stops || [];
   const grandTotal = stops.reduce((sum, stop) => {
     return (
       sum +
-      stop.activities.reduce(
-        (s, ta) => s + (ta.activity?.estimatedCost || 0),
+      (stop.activities || []).reduce(
+        (s, ta) => {
+          const cost = ta.estimatedCost !== undefined ? ta.estimatedCost : (ta.activity?.estimatedCost || 0);
+          return s + Math.round(cost * 83);
+        },
         0
       )
     );
   }, 0);
 
   return (
-    <div className="min-h-screen bg-navy-950">
+    <div className="min-h-screen bg-navy-950 text-slate-200">
       {/* Amber accent strip */}
       <div className="h-1 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600" />
 
       {/* Minimal header */}
-      <header className="border-b border-navy-800">
+      <header className="border-b border-navy-800 bg-navy-900/80 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded bg-amber-400 flex items-center justify-center text-navy-950 font-bold text-sm font-display">
+            <div className="w-8 h-8 rounded bg-amber-400 flex items-center justify-center text-navy-950 font-bold text-sm font-display">
               G
             </div>
             <span className="font-display text-base text-cream">GlobeTrotter</span>
           </Link>
-          <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-600">
-            Shared Itinerary
+          <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-amber-400/80 bg-amber-400/10 px-2.5 py-1 rounded border border-amber-400/20">
+            Public Boarding Pass
           </span>
         </div>
       </header>
@@ -164,55 +166,57 @@ export default function SharedTripPage() {
           className="mb-8"
         >
           {trip.coverImage && (
-            <div className="h-48 sm:h-64 rounded-lg overflow-hidden mb-6 relative">
+            <div className="h-48 sm:h-64 rounded-lg overflow-hidden mb-6 relative shadow-2xl">
               <img
                 src={trip.coverImage}
                 alt={trip.name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-navy-950/90 via-navy-950/30 to-transparent" />
             </div>
           )}
 
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
               <span className="text-[10px] tracking-[0.3em] uppercase font-mono text-amber-400/60 block mb-1">
-                Shared Trip
+                Shared by {trip.creatorName || 'GlobeTrotter Traveler'}
               </span>
-              <h1 className="font-display text-3xl text-cream">{trip.name}</h1>
-              <p className="text-sm text-slate-400 mt-1">{trip.description}</p>
-              <div className="flex items-center gap-3 mt-2 text-[11px] font-mono text-slate-500">
+              <h1 className="font-display text-3xl sm:text-4xl text-cream">{trip.name}</h1>
+              {trip.description && (
+                <p className="text-sm text-slate-400 mt-2">{trip.description}</p>
+              )}
+              <div className="flex items-center gap-3 mt-3 text-[11px] font-mono text-slate-400">
                 <span>{formatDateShort(trip.startDate)} — {formatDateShort(trip.endDate)}</span>
                 <span>•</span>
-                <span>{stops.length} cities</span>
+                <span>{stops.length} {stops.length === 1 ? 'city' : 'cities'}</span>
                 <span>•</span>
-                <span className="text-amber-400">₹{grandTotal.toLocaleString('en-IN')}</span>
+                <span className="text-amber-400 font-bold">₹{grandTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
             <button
               onClick={handleCopyTrip}
               disabled={copying || copied}
-              className={`px-5 py-3 text-xs tracking-[0.15em] uppercase font-mono font-bold rounded transition-all ${
+              className={`px-6 py-3.5 text-xs tracking-[0.15em] uppercase font-mono font-bold rounded transition-all shadow-lg ${
                 copied
                   ? 'bg-success text-navy-950'
                   : 'bg-amber-400 hover:bg-amber-500 text-navy-950'
               } disabled:opacity-70`}
             >
-              {copied ? '✓ Copied to Your Trips!' : copying ? 'Copying...' : '📋 Copy This Trip'}
+              {copied ? '✓ Added to Your Trips!' : copying ? 'Copying...' : '📋 Copy This Trip'}
             </button>
           </div>
         </motion.div>
 
         {/* Route visualization */}
         {stops.length > 1 && (
-          <div className="mb-8 bg-navy-900/50 rounded-lg p-4">
+          <div className="mb-8 bg-navy-900/50 border border-navy-800 rounded-lg p-4">
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
               {stops.map((stop, i) => (
                 <div key={stop.id} className="flex items-center flex-shrink-0">
                   <div className="flex flex-col items-center">
                     <span className="text-xs font-mono font-bold text-amber-400">{stop.city?.name}</span>
-                    <span className="text-[9px] font-mono text-slate-600">{stop.city?.country}</span>
+                    <span className="text-[9px] font-mono text-slate-500">{stop.city?.country}</span>
                   </div>
                   {i < stops.length - 1 && (
                     <div className="mx-4 flex items-center">
@@ -229,16 +233,18 @@ export default function SharedTripPage() {
         {/* Stops */}
         <div className="space-y-8">
           {stops.map((stop, stopIndex) => {
-            // Group activities by date
             const byDate = {};
-            stop.activities.forEach((ta) => {
-              const date = ta.date || 'unscheduled';
+            (stop.activities || []).forEach((ta) => {
+              const date = ta.activityDate || ta.date || 'unscheduled';
               if (!byDate[date]) byDate[date] = [];
               byDate[date].push(ta);
             });
 
-            const cityTotal = stop.activities.reduce(
-              (sum, ta) => sum + (ta.activity?.estimatedCost || 0),
+            const cityTotal = (stop.activities || []).reduce(
+              (sum, ta) => {
+                const cost = ta.estimatedCost !== undefined ? ta.estimatedCost : (ta.activity?.estimatedCost || 0);
+                return sum + Math.round(cost * 83);
+              },
               0
             );
 
@@ -255,7 +261,7 @@ export default function SharedTripPage() {
                     <img
                       src={stop.city.imageUrl}
                       alt={stop.city.name}
-                      className="w-14 h-14 rounded-lg object-cover border border-navy-600"
+                      className="w-14 h-14 rounded-lg object-cover border border-navy-600 shadow-md"
                     />
                   )}
                   <div className="flex-1">
@@ -265,7 +271,7 @@ export default function SharedTripPage() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-600 block">Subtotal</span>
+                    <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-slate-500 block">Subtotal</span>
                     <span className="text-sm font-mono font-bold text-amber-400">
                       ₹{cityTotal.toLocaleString('en-IN')}
                     </span>
@@ -288,8 +294,11 @@ export default function SharedTripPage() {
                           {acts
                             .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
                             .map((ta) => {
-                              if (!ta.activity) return null;
-                              const cat = CATEGORIES[ta.activity.category] || CATEGORIES.sightseeing;
+                              const name = ta.activityName || ta.activity?.name || 'Activity';
+                              const catName = (ta.category || ta.activity?.category || 'sightseeing').toLowerCase();
+                              const cost = ta.estimatedCost !== undefined ? ta.estimatedCost : (ta.activity?.estimatedCost || 0);
+                              const cat = CATEGORIES[catName] || CATEGORIES.sightseeing;
+
                               return (
                                 <div
                                   key={ta.id}
@@ -298,19 +307,19 @@ export default function SharedTripPage() {
                                   <span className="text-sm flex-shrink-0">{cat.icon}</span>
                                   {ta.startTime && (
                                     <span className="text-[11px] font-mono text-amber-400/70 flex-shrink-0 w-24">
-                                      {ta.startTime} – {ta.endTime}
+                                      {ta.startTime} – {ta.endTime || ''}
                                     </span>
                                   )}
                                   <div className="flex-1 min-w-0">
                                     <span className="text-sm text-cream truncate block">
-                                      {ta.activity.name}
+                                      {name}
                                     </span>
                                   </div>
                                   <span className={`text-[9px] px-1.5 py-0.5 rounded flex-shrink-0 ${cat.color}`}>
-                                    {ta.activity.category}
+                                    {catName}
                                   </span>
                                   <span className="text-xs font-mono text-amber-400/80 flex-shrink-0">
-                                    ₹{ta.activity.estimatedCost.toLocaleString('en-IN')}
+                                    ₹{Math.round(cost * 83).toLocaleString('en-IN')}
                                   </span>
                                 </div>
                               );
@@ -327,7 +336,7 @@ export default function SharedTripPage() {
         {/* Grand total */}
         <div className="mt-10 pt-6 border-t border-navy-700 flex items-center justify-between">
           <span className="text-[11px] tracking-[0.2em] uppercase font-mono text-slate-500">
-            Estimated Total
+            Estimated Total Cost
           </span>
           <span className="text-xl font-mono font-bold text-amber-400">
             ₹{grandTotal.toLocaleString('en-IN')}
@@ -335,11 +344,15 @@ export default function SharedTripPage() {
         </div>
 
         {/* Copy CTA at bottom */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center bg-navy-900/80 border border-navy-700 rounded-xl p-8 shadow-xl">
+          <h3 className="font-display text-xl text-cream mb-2">Want to customize this journey?</h3>
+          <p className="text-xs font-mono text-slate-400 max-w-md mx-auto mb-6">
+            Fork this itinerary into your GlobeTrotter account to edit days, customize activities, or track budget in real-time.
+          </p>
           <button
             onClick={handleCopyTrip}
             disabled={copying || copied}
-            className={`px-8 py-3 text-xs tracking-[0.15em] uppercase font-mono font-bold rounded transition-all ${
+            className={`px-8 py-3.5 text-xs tracking-[0.15em] uppercase font-mono font-bold rounded transition-all shadow-lg ${
               copied
                 ? 'bg-success text-navy-950'
                 : 'bg-amber-400 hover:bg-amber-500 text-navy-950'
@@ -348,20 +361,20 @@ export default function SharedTripPage() {
             {copied ? '✓ Added to Your Trips!' : '📋 Copy This Trip to Your Account'}
           </button>
           {!isAuthenticated && (
-            <p className="text-[10px] font-mono text-slate-600 mt-2">
-              You'll need to log in first
+            <p className="text-[10px] font-mono text-slate-500 mt-3">
+              You will be redirected to sign in / create an account
             </p>
           )}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-navy-800 py-4 mt-12">
+      <footer className="border-t border-navy-800 py-6 mt-12 bg-navy-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 flex justify-between items-center">
-          <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-navy-600">
+          <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-navy-500">
             GlobeTrotter © 2026
           </span>
-          <Link to="/" className="text-[10px] font-mono text-amber-400/60 hover:text-amber-400 transition-colors">
+          <Link to="/" className="text-[10px] font-mono text-amber-400/70 hover:text-amber-400 transition-colors">
             Plan your own trip →
           </Link>
         </div>

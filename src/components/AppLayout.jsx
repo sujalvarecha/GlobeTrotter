@@ -5,9 +5,11 @@
  * Navigation uses monospace, uppercase labels like airport signage.
  */
 
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
+import AiWizardModal from './AiWizardModal';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '◈' },
@@ -18,6 +20,7 @@ const navItems = [
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -69,19 +72,33 @@ export default function AppLayout() {
               ))}
             </nav>
 
-            {/* User section */}
-            <div className="flex items-center gap-4">
+            {/* User section & Actions */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsAiWizardOpen(true)}
+                className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400 rounded transition-colors shadow-sm"
+              >
+                <span className="text-sm">✨</span> AI Wizard
+              </button>
+
+              <NavLink to="/admin" className="hidden sm:flex text-xs font-mono text-slate-400 hover:text-amber-400 p-2">
+                Admin
+              </NavLink>
+
               {user && (
-                <div className="hidden sm:flex items-center gap-3 bg-navy-950/60 px-3 py-1.5 rounded-full border border-navy-700">
+                <NavLink
+                  to="/profile"
+                  className="hidden sm:flex items-center gap-2 bg-navy-950/60 px-3 py-1.5 rounded-full border border-navy-700 hover:border-amber-400/50 transition-colors"
+                >
                   <img
                     src={user.profileImage}
                     alt={user.name}
-                    className="w-7 h-7 rounded-full border border-amber-400/50"
+                    className="w-7 h-7 rounded-full border border-amber-400/30"
                   />
-                  <span className="text-xs text-cream font-mono font-semibold">
+                  <span className="text-xs text-cream font-mono font-semibold hover:text-amber-400 transition-colors">
                     {user.name}
                   </span>
-                </div>
+                </NavLink>
               )}
               <button
                 onClick={handleLogout}
@@ -140,6 +157,11 @@ export default function AppLayout() {
           <Outlet />
         </motion.div>
       </main>
+
+      <AiWizardModal 
+        isOpen={isAiWizardOpen} 
+        onClose={() => setIsAiWizardOpen(false)} 
+      />
 
       {/* ── Footer ── */}
       <footer className="border-t border-navy-800 py-4">

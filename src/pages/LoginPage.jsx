@@ -26,12 +26,13 @@ const DESTINATIONS = [
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState('login');
+  const [resetSent, setResetSent] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
   });
-  const { login, signup, isLoading, error, clearError } = useAuthStore();
+  const { login, signup, forgotPassword, isLoading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -44,10 +45,14 @@ export default function LoginPage() {
     try {
       if (activeTab === 'login') {
         await login(formData.email, formData.password);
-      } else {
+        navigate('/');
+      } else if (activeTab === 'signup') {
         await signup(formData.name, formData.email, formData.password);
+        navigate('/');
+      } else if (activeTab === 'forgot') {
+        await forgotPassword(formData.email);
+        setResetSent(true);
       }
-      navigate('/');
     } catch {
       // Error is already set in the store
     }
@@ -55,6 +60,7 @@ export default function LoginPage() {
 
   const switchTab = (tab) => {
     setActiveTab(tab);
+    setResetSent(false);
     setFormData({ name: '', email: '', password: '' });
     clearError();
   };
@@ -258,20 +264,39 @@ export default function LoginPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500 mb-2">
-                        Password
-                      </label>
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                        placeholder="••••••••"
-                        className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-sm text-cream font-mono placeholder:text-navy-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                      />
-                    </div>
+                    {activeTab !== 'forgot' && (
+                      <div>
+                        <div className="flex justify-between items-end mb-2">
+                          <label className="block text-[10px] tracking-[0.2em] uppercase font-mono text-slate-500">
+                            Password
+                          </label>
+                          {activeTab === 'login' && (
+                            <button
+                              type="button"
+                              onClick={() => switchTab('forgot')}
+                              className="text-[10px] font-mono text-amber-400 hover:text-amber-300 tracking-wider"
+                            >
+                              Forgot?
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          required
+                          placeholder="••••••••"
+                          className="w-full bg-navy-950 border border-navy-600 rounded px-4 py-3 text-sm text-cream font-mono placeholder:text-navy-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                        />
+                      </div>
+                    )}
+
+                    {activeTab === 'forgot' && resetSent && (
+                      <div className="bg-success/10 border border-success/30 rounded px-4 py-3 text-xs text-success font-mono text-center">
+                        Recovery link sent to {formData.email}. Check your inbox!
+                      </div>
+                    )}
 
                     {/* Error message */}
                     <AnimatePresence>
@@ -289,7 +314,7 @@ export default function LoginPage() {
 
                     <button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={isLoading || (activeTab === 'forgot' && resetSent)}
                       className="w-full bg-amber-400 hover:bg-amber-500 text-navy-950 font-mono font-bold text-xs tracking-[0.2em] uppercase py-3.5 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
                     >
                       {isLoading ? (
@@ -302,11 +327,25 @@ export default function LoginPage() {
                         </span>
                       ) : activeTab === 'login' ? (
                         'Board Now →'
-                      ) : (
+                      ) : activeTab === 'signup' ? (
                         'Get Your Pass →'
+                      ) : resetSent ? (
+                        'Sent ✓'
+                      ) : (
+                        'Reset Password →'
                       )}
                       <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
                     </button>
+
+                    {activeTab === 'forgot' && (
+                      <button
+                        type="button"
+                        onClick={() => switchTab('login')}
+                        className="w-full text-center text-xs font-mono text-slate-500 hover:text-amber-400 mt-4 transition-colors"
+                      >
+                        ← Back to Login
+                      </button>
+                    )}
                   </motion.form>
                 </AnimatePresence>
 

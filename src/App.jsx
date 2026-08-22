@@ -9,6 +9,8 @@ import ItineraryBuilderPage from './pages/ItineraryBuilderPage';
 import ItineraryViewPage from './pages/ItineraryViewPage';
 import BudgetPage from './pages/BudgetPage';
 import SharedTripPage from './pages/SharedTripPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 
 export default function App() {
   return (
@@ -32,6 +34,8 @@ export default function App() {
           <Route path="/trips/:tripId/itinerary/edit" element={<ItineraryBuilderPage />} />
           <Route path="/trips/:tripId/itinerary" element={<ItineraryViewPage />} />
           <Route path="/trips/:tripId/budget" element={<BudgetPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
 
         {/* Fallback */}

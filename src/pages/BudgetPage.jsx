@@ -38,7 +38,9 @@ const CATEGORY_LABELS = {
   other: 'Other',
 };
 
-const formatCurrency = (value) => `₹${value.toLocaleString('en-IN')}`;
+const EXCHANGE_RATES = { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0095, JPY: 1.8 };
+const CURRENCY_SYMBOLS = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+const TIER_MULTIPLIERS = { budget: 0.7, standard: 1, luxury: 1.5 };
 
 const formatDateShort = (dateStr) => {
   if (!dateStr) return '';
@@ -46,22 +48,32 @@ const formatDateShort = (dateStr) => {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
 };
 
-// Custom tooltip
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-navy-800 border border-navy-600 rounded px-3 py-2">
-        <p className="text-xs text-cream font-mono">{payload[0].name || payload[0].payload?.name}</p>
-        <p className="text-xs text-amber-400 font-mono font-bold">{formatCurrency(payload[0].value)}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
 export default function BudgetPage() {
   const { tripId } = useParams();
   const { currentTrip, fetchTrip, budget, fetchBudget, isLoading } = useTripStore();
+  const [currency, setCurrency] = useState('INR');
+  const [tier, setTier] = useState('standard');
+
+  const formatCurrency = (value) => {
+    const converted = value * EXCHANGE_RATES[currency] * TIER_MULTIPLIERS[tier];
+    const symbol = CURRENCY_SYMBOLS[currency];
+    const options = ['JPY', 'INR'].includes(currency) ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+    return `${symbol}${converted.toLocaleString('en-US', options)}`;
+  };
+
+  const getRawConverted = (value) => value * EXCHANGE_RATES[currency] * TIER_MULTIPLIERS[tier];
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-navy-800 border border-navy-600 rounded px-3 py-2">
+          <p className="text-xs text-cream font-mono">{payload[0].name || payload[0].payload?.name}</p>
+          <p className="text-xs text-amber-400 font-mono font-bold">{formatCurrency(payload[0].value / (EXCHANGE_RATES[currency] * TIER_MULTIPLIERS[tier]))}</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   useEffect(() => {
     fetchTrip(tripId);
@@ -82,7 +94,7 @@ export default function BudgetPage() {
     .filter(([_, val]) => val > 0)
     .map(([key, val]) => ({
       name: CATEGORY_LABELS[key] || key,
-      value: val,
+      value: getRawConverted(val),
       color: CATEGORY_COLORS[key] || '#6B7280',
     }));
 
@@ -91,7 +103,7 @@ export default function BudgetPage() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, amount]) => ({
       name: formatDateShort(date),
-      amount,
+      amount: getRawConverted(amount),
       fullDate: date,
     }));
 
@@ -109,7 +121,28 @@ export default function BudgetPage() {
           </span>
           <h1 className="font-display text-3xl text-cream">{currentTrip?.name || 'Trip'}</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex gap-2">
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="bg-navy-950 border border-navy-600 text-cream text-xs font-mono rounded px-2 py-1.5 focus:border-amber-400 focus:outline-none"
+            >
+              {Object.keys(EXCHANGE_RATES).map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <select
+              value={tier}
+              onChange={(e) => setTier(e.target.value)}
+              className="bg-navy-950 border border-navy-600 text-cream text-xs font-mono rounded px-2 py-1.5 focus:border-amber-400 focus:outline-none"
+            >
+              <option value="budget">Budget</option>
+              <option value="standard">Standard</option>
+              <option value="luxury">Luxury</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
           <Link
             to={`/trips/${tripId}/itinerary`}
             className="px-3 py-2 text-[10px] tracking-[0.15em] uppercase font-mono text-slate-400 border border-navy-600 hover:border-slate-500 rounded transition-colors"
@@ -122,6 +155,7 @@ export default function BudgetPage() {
           >
             Edit Itinerary
           </Link>
+          </div>
         </div>
       </div>
 
@@ -185,7 +219,7 @@ export default function BudgetPage() {
           <div>
             <span className="text-sm font-mono font-bold text-danger block">Over Budget</span>
             <span className="text-xs font-mono text-danger/70">
-              You're ₹{(budget.total - budget.budget).toLocaleString('en-IN')} over your ₹{budget.budget.toLocaleString('en-IN')} budget
+              You're {formatCurrency(budget.total - budget.budget)} over your {formatCurrency(budget.budget)} budget
             </span>
           </div>
         </motion.div>
@@ -282,7 +316,7 @@ export default function BudgetPage() {
                   tick={{ fill: '#7B8A9E', fontSize: 10, fontFamily: 'JetBrains Mono' }}
                   axisLine={{ stroke: '#1B2D4A' }}
                   tickLine={{ stroke: '#1B2D4A' }}
-                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                  tickFormatter={(v) => `${CURRENCY_SYMBOLS[currency]}${(getRawConverted(v) / 1000).toFixed(0)}k`}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="amount" fill="#F5A623" radius={[4, 4, 0, 0]} />

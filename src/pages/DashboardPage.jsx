@@ -205,6 +205,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { trips, fetchTrips, isLoading } = useTripStore();
   const [budgetSummary, setBudgetSummary] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const videoRef = useRef(null);
 
   // Slow down video playback speed (0.4 = 40% speed for smooth slow-mo motion)
@@ -220,7 +221,7 @@ export default function DashboardPage() {
     }
   }, [user?.id, fetchTrips]);
 
-  // Fetch aggregate budget for all trips
+  // Fetch aggregate budget for all trips & dashboard summary
   useEffect(() => {
     const fetchBudgets = async () => {
       let totalSpent = 0;
@@ -238,6 +239,12 @@ export default function DashboardPage() {
     };
     if (trips.length > 0) fetchBudgets();
   }, [trips]);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.getDashboardSummary(user.id).then(({ data }) => setDashboardData(data));
+    }
+  }, [user?.id]);
 
   const now = new Date();
   const upcoming = trips.filter((t) => new Date(t.startDate) > now);
@@ -306,6 +313,24 @@ export default function DashboardPage() {
           </Link>
         </motion.div>
       </div>
+
+      {/* ── Travel Metrics Cards ── */}
+      {dashboardData && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div className="bg-navy-900/80 backdrop-blur-md border border-navy-700/80 rounded-lg p-5 shadow-lg">
+            <span className="block text-3xl font-display text-amber-400 mb-1">{dashboardData.metrics.totalTrips}</span>
+            <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-slate-400">Total Trips</span>
+          </div>
+          <div className="bg-navy-900/80 backdrop-blur-md border border-navy-700/80 rounded-lg p-5 shadow-lg">
+            <span className="block text-3xl font-display text-amber-400 mb-1">₹{dashboardData.metrics.totalSpent.toLocaleString('en-IN')}</span>
+            <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-slate-400">Estimated Spent</span>
+          </div>
+          <div className="bg-navy-900/80 backdrop-blur-md border border-navy-700/80 rounded-lg p-5 shadow-lg">
+            <span className="block text-3xl font-display text-amber-400 mb-1">{dashboardData.metrics.totalDestinations}</span>
+            <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-slate-400">Cities Visited</span>
+          </div>
+        </div>
+      )}
 
       {/* ── Budget Summary Bar ── */}
       {budgetSummary && budgetSummary.totalBudget > 0 && (
@@ -384,6 +409,32 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recent.map((trip, i) => (
               <TripCard key={trip.id} trip={trip} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Popular Destinations ── */}
+      {dashboardData && dashboardData.popularCities && (
+        <section className="pt-6">
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="text-[11px] tracking-[0.25em] uppercase font-mono text-slate-500 font-semibold">
+              Trending Destinations
+            </h2>
+            <div className="h-px flex-1 bg-navy-800" />
+          </div>
+          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory">
+            {dashboardData.popularCities.map((city) => (
+              <div key={city.id} className="min-w-[240px] snap-center rounded-lg overflow-hidden border border-navy-700 group relative cursor-pointer">
+                <div className="h-40 w-full relative">
+                  <img src={city.imageUrl || 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800'} alt={city.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-transparent to-transparent opacity-80" />
+                </div>
+                <div className="absolute bottom-3 left-4">
+                  <span className="block text-lg font-display text-cream drop-shadow-md">{city.name}</span>
+                  <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-amber-400">{city.country}</span>
+                </div>
+              </div>
             ))}
           </div>
         </section>

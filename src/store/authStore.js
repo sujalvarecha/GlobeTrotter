@@ -57,6 +57,18 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  forgotPassword: async (email) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.forgotPassword({ email });
+      set({ isLoading: false });
+    } catch (err) {
+      const message = err?.response?.data?.message || 'Failed to send reset link';
+      set({ isLoading: false, error: message });
+      throw new Error(message);
+    }
+  },
+
   logout: () => {
     localStorage.removeItem(STORAGE_KEY);
     set({ user: null, token: null, isAuthenticated: false, error: null });

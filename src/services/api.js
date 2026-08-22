@@ -343,3 +343,101 @@ export const copyTrip = async (shareToken, userId) => {
 
   return response(newTrip);
 };
+
+// ─── Phase 2: Missing Endpoints ──────────────────────────
+
+export const forgotPassword = async ({ email }) => {
+  await delay();
+  return response({ message: 'Reset link sent' });
+};
+
+export const getUserProfile = async (userId) => {
+  await delay();
+  const user = users.find(u => u.id === userId);
+  if (!user) throw { response: { status: 404, data: { message: 'User not found' } } };
+  const userTrips = _trips.filter(t => t.userId === userId);
+  const totalDestinations = new Set(
+    _tripStops.filter(s => userTrips.some(t => t.id === s.tripId)).map(s => s.cityId)
+  ).size;
+  return response({
+    ...user,
+    stats: { trips: userTrips.length, destinations: totalDestinations },
+    preferences: { language: 'en', currency: 'USD' }
+  });
+};
+
+export const updateUserProfile = async (userId, updates) => {
+  await delay();
+  return response({ success: true, ...updates });
+};
+
+export const deleteAccount = async (userId) => {
+  await delay();
+  return response({ success: true });
+};
+
+export const getAdminStats = async () => {
+  await delay();
+  return response({
+    totalUsers: users.length,
+    totalTrips: _trips.length,
+    totalStops: _tripStops.length,
+    totalActivities: _tripActivities.length,
+    topDestinations: cities.slice(0, 5)
+  });
+};
+
+export const getDashboardSummary = async (userId) => {
+  await delay();
+  const userTrips = _trips.filter(t => t.userId === userId);
+  const upcoming = userTrips.filter(t => new Date(t.startDate) > new Date()).slice(0, 3);
+  const recent = userTrips.filter(t => new Date(t.startDate) <= new Date()).slice(0, 3);
+  return response({
+    metrics: { totalTrips: userTrips.length, totalSpent: 4500, totalDestinations: 8 },
+    upcoming,
+    recent,
+    popularCities: cities.slice(0, 4)
+  });
+};
+
+export const getRoute = async (tripId) => {
+  await delay();
+  const stops = _tripStops.filter(s => s.tripId === tripId).sort((a,b) => a.stopOrder - b.stopOrder);
+  const routeLegs = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const fromCity = cities.find(c => c.id === stops[i].cityId);
+    const toCity = cities.find(c => c.id === stops[i+1].cityId);
+    routeLegs.push({
+      id: generateId('leg'),
+      from: fromCity?.name || 'Unknown',
+      to: toCity?.name || 'Unknown',
+      mode: ['Flight', 'Rail', 'Drive'][Math.floor(Math.random() * 3)],
+      distance: Math.floor(Math.random() * 800) + 200 + ' km',
+      duration: Math.floor(Math.random() * 5) + 1 + ' hours',
+      cost: Math.floor(Math.random() * 150) + 50
+    });
+  }
+  return response(routeLegs);
+};
+
+export const exportMarkdown = async (tripId) => {
+  await delay();
+  return response({ content: `# Trip Export\n\nYour amazing trip details here...` });
+};
+
+export const exportText = async (tripId) => {
+  await delay();
+  return response({ content: `Trip Export\n\nYour amazing trip details here...` });
+};
+
+export const generateAiItinerary = async (params) => {
+  await delay();
+  return response({
+    id: 'ai-' + Date.now(),
+    name: `Magic Trip to ${params.destination}`,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + params.duration * 86400000).toISOString().split('T')[0],
+    budget: params.budget,
+    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800'
+  });
+};

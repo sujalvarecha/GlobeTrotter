@@ -6,8 +6,12 @@
 
 import axios from 'axios';
 
-// Configure API Base URL (reads from VITE_API_URL in production / Vercel, defaults to localhost:8080)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+// Configure API Base URL (auto-points to live Render backend in production, localhost:8080 in dev)
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://globetrotter-backend-1gz1.onrender.com/api'
+    : 'http://localhost:8080/api');
 
 // Configure Axios instance
 const api = axios.create({

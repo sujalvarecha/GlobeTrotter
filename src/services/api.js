@@ -6,9 +6,12 @@
 
 import axios from 'axios';
 
+// Configure API Base URL (reads from VITE_API_URL in production / Vercel, defaults to localhost:8080)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 // Configure Axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
